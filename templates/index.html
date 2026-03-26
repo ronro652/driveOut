@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drive-to-Transit Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --surface-2: #222228;
+      --border: #2e2e36;
+      --text: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --accent: #7c3aed;
+      --accent-hover: #8b5cf6;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem 0;
+      background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .alert {
+      padding: 0.875rem 1rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .field label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .field input:not([type="radio"]) {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      font: inherit;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.15s;
+    }
+
+    .field input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .field input:not([type="radio"]):focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 500px) {
+      .row-2 { grid-template-columns: 1fr; }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Results */
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .results-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .results-count {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .option-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.15s;
+    }
+
+    .option-card:hover {
+      border-color: rgba(124, 58, 237, 0.4);
+    }
+
+    .option-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .option-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .option-total {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .option-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .option-meta span {
+      margin-right: 1rem;
+    }
+
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      border-left: 2px solid var(--border);
+      margin-left: 0.5rem;
+      padding-left: 1rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .step:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .step-icon-wrap {
+      flex-shrink: 0;
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+    }
+
+    .step-icon-wrap.driving { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .step-icon-wrap.transit { background: rgba(124, 58, 237, 0.2); color: var(--accent); }
+    .step-icon-wrap.walking { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .step-icon-wrap.waiting { background: rgba(161, 161, 170, 0.2); color: var(--text-muted); }
+
+    .step-icon {
+      width: 1.1rem;
+      height: 1.1rem;
+    }
+
+    .step-mode {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      width: 4.5em;
+    }
+
+    .step-mode.driving { color: #3b82f6; }
+    .step-mode.transit { color: var(--accent); }
+    .step-mode.walking { color: var(--success); }
+    .step-mode.waiting { color: var(--text-muted); }
+
+    .step-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .step-detail {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    .step-detail .wait {
+      color: #f59e0b;
+    }
+
+    .step-line-name {
+      display: inline-block;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-top: 0.25rem;
+      letter-spacing: 0.02em;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .radio-label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.9rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .radio-label:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(124, 58, 237, 0.1);
+    }
+
+    .radio-label input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .radio-label span:first-of-type {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .radio-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    @media (max-width: 500px) {
+      .radio-group { flex-direction: column; }
+    }
+
+    .map-card {
+      margin-bottom: 1.5rem;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 380px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+
+    .map-container .gm-style {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <symbol id="icon-driving" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 17h1v-4l-2-4H6L4 13v4h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
+    </symbol>
+    <symbol id="icon-transit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="12" rx="1"/><path d="M4 10h16"/><path d="M8 16h2"/><path d="M14 16h2"/><path d="M7 4v4"/><path d="M17 4v4"/>
+    </symbol>
+    <symbol id="icon-walking" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="5" r="2.5"/><path d="M12 14v6"/><path d="m9 18 3-4 2 3 4-6"/>
+    </symbol>
+    <symbol id="icon-waiting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>
+    </symbol>
+  </svg>
+  <div class="page">
+    <h1>Drive-to-Transit Planner</h1>
+    <p class="subtitle">Plan a trip by driving to a transit station, then taking transit to your destination.</p>
+
+    {% if errors %}
+      <div class="alert alert-error" role="alert">{{ errors }}</div>
+    {% endif %}
+
+    <div class="card">
+      <h2 class="card-title">Trip details</h2>
+      <form method="post" action="/">
+        <div class="form-grid">
+          <div class="field">
+            <label for="start">Start address</label>
+            <input type="text" id="start" name="start" placeholder="e.g. 123 Main St, City" value="{{ form.start or '' }}" autocomplete="address-line1">
+          </div>
+          <div class="field">
+            <label for="dest">Destination address</label>
+            <input type="text" id="dest" name="dest" placeholder="e.g. Central Station" value="{{ form.dest or '' }}" autocomplete="address-line1">
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label for="departure_date">Depart on date</label>
+              <input type="date" id="departure_date" name="departure_date" value="{{ form.departure_date or '' }}">
+              <span class="hint">Leave empty for “leave now”</span>
+            </div>
+            <div class="field">
+              <label for="departure_time">Depart at time</label>
+              <input type="time" id="departure_time" name="departure_time" value="{{ form.departure_time or '' }}">
+            </div>
+          </div>
+          <div class="field">
+            <label>Drive to station near</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="search_mode" value="origin" {{ 'checked' if (form.search_mode or 'origin') == 'origin' }}>
+                <span>Origin</span>
+                <span class="radio-hint">Drive → Station → Transit</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="search_mode" value="destination" {{ 'checked' if form.search_mode == 'destination' }}>
+                <span>Destination</span>
+                <span class="radio-hint">Transit → Station → Drive</span>
+              </label>
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label for="max_drive">Max drive to station (minutes)</label>
+              <input type="number" id="max_drive" name="max_drive" min="1" max="60" step="1" value="{{ form.max_drive or 15 }}" placeholder="15">
+            </div>
+            <div class="field">
+              <label for="threshold">Max wait at station (minutes)</label>
+              <input type="number" id="threshold" name="threshold" min="0" max="30" step="1" value="{{ form.threshold or 5 }}" placeholder="5">
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 1.5rem;">
+          <button type="submit" class="btn">Plan trip</button>
+        </div>
+      </form>
+    </div>
+
+    {% if results %}
+      {% if map_data %}
+      <div class="card map-card">
+        <h2 class="card-title">Route map</h2>
+        <p class="subtitle" style="margin-bottom: 1rem;">Best option: {% if map_data.station %}start → {{ map_data.station.name }} → destination{% else %}drive directly to destination{% endif %}</p>
+        <div id="map" class="map-container"></div>
+      </div>
+      {% endif %}
+      <div class="card">
+        <div class="results-header">
+          <h2 class="results-title">Top options</h2>
+          <span class="results-count">{{ results|length }} route{{ 's' if results|length != 1 else '' }}</span>
+        </div>
+        <ul class="steps-list" style="list-style: none;">
+          {% for opt in results %}
+            <li class="option-card">
+              <div class="option-header">
+                <span class="option-total">Arrive {{ opt.arrival_time }}</span>
+                <span class="option-meta"><span>{{ opt.total_time_min }} min total</span></span>
+                <span class="option-meta">
+                  <span>Station: {{ opt.station }}</span>
+                  {% if opt.wait_before_min and opt.wait_before_min > 0 %}
+                    <span>Wait at start: {{ opt.wait_before_min }} min</span>
+                  {% endif %}
+                </span>
+              </div>
+              <ul class="steps-list">
+                {% for step in opt.steps %}
+                  <li class="step">
+                    <span class="step-num" aria-hidden="true">{{ loop.index }}</span>
+                    <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
+                      <svg class="step-icon"><use href="#icon-{{ step.travel_mode|lower }}"/></svg>
+                    </span>
+                    <span class="step-mode {{ step.travel_mode|lower }}">{{ step.travel_mode }}</span>
+                    <div class="step-body">
+                      <div>{{ step.instruction }}</div>
+                      {% if step.travel_mode == 'TRANSIT' and step.line_name %}
+                        <div class="step-line-name">{{ step.line_name }} — {{ step.departure_stop }} → {{ step.arrival_stop }}</div>
+                      {% endif %}
+                      <div class="step-detail">
+                        {{ step.distance_km }} km · {{ step.duration_min }} min
+                        {% if step.wait_min and step.wait_min > 0 %}
+                          <span class="wait">· wait {{ step.wait_min }} min</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if map_data %}
+  <script type="application/json" id="map-data">{{ map_data | tojson }}</script>
+  <script>
+    (function() {
+      var dataEl = document.getElementById('map-data');
+      if (!dataEl) return;
+      var mapData = JSON.parse(dataEl.textContent);
+      var apiKey = mapData.api_key;
+      if (!apiKey) return;
+
+      function initMap() {
+        var origin = new google.maps.LatLng(mapData.origin.lat, mapData.origin.lng);
+        var dest = new google.maps.LatLng(mapData.destination.lat, mapData.destination.lng);
+        var station = mapData.station ? new google.maps.LatLng(mapData.station.lat, mapData.station.lng) : null;
+        var isDirect = mapData.search_mode === 'direct';
+
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 10,
+          center: station || origin,
+          styles: [
+            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'simplified' }] }
+          ],
+          mapTypeControl: true,
+          streetViewControl: false,
+          fullscreenControl: true,
+          zoomControl: true
+        });
+
+        var bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(dest);
+        if (station) bounds.extend(station);
+        map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
+
+        new google.maps.Marker({
+          position: origin, map: map, title: 'Start',
+          label: { text: 'A', color: 'white', fontWeight: 'bold' },
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
+            fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#166534', strokeWeight: 2 }
+        });
+        if (station) {
+          new google.maps.Marker({
+            position: station, map: map, title: mapData.station.name || 'Transit station',
+            label: { text: 'B', color: 'white', fontWeight: 'bold' },
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
+              fillColor: '#7c3aed', fillOpacity: 1, strokeColor: '#5b21b6', strokeWeight: 2 }
+          });
+        }
+        new google.maps.Marker({
+          position: dest, map: map, title: 'Destination',
+          label: { text: isDirect ? 'B' : 'C', color: 'white', fontWeight: 'bold' },
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
+            fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#b91c1c', strokeWeight: 2 }
+        });
+
+        var dirService = new google.maps.DirectionsService();
+        var driveRenderer = new google.maps.DirectionsRenderer({
+          map: map, suppressMarkers: true, preserveViewport: true,
+          polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 5, strokeOpacity: 0.9 }
+        });
+
+        if (isDirect) {
+          dirService.route(
+            { origin: origin, destination: dest, travelMode: google.maps.TravelMode.DRIVING },
+            function(response, status) { if (status === 'OK') driveRenderer.setDirections(response); }
+          );
+        } else {
+          var transitRenderer = new google.maps.DirectionsRenderer({
+            map: map, suppressMarkers: true, preserveViewport: true,
+            polylineOptions: { strokeColor: '#7c3aed', strokeWeight: 5, strokeOpacity: 0.9 }
+          });
+          var isDest = mapData.search_mode === 'destination';
+          dirService.route(
+            { origin: isDest ? station : origin, destination: isDest ? dest : station,
+              travelMode: google.maps.TravelMode.DRIVING },
+            function(response, status) { if (status === 'OK') driveRenderer.setDirections(response); }
+          );
+          dirService.route(
+            { origin: isDest ? origin : station, destination: isDest ? station : dest,
+              travelMode: google.maps.TravelMode.TRANSIT,
+              transitOptions: { modes: ['BUS', 'RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL'] } },
+            function(response, status) { if (status === 'OK') transitRenderer.setDirections(response); }
+          );
+        }
+      }
+
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&callback=window.initDriveOutMap';
+      s.async = true;
+      s.defer = true;
+      window.initDriveOutMap = initMap;
+      document.head.appendChild(s);
+    })();
+  </script>
+  {% endif %}
+</body>
+</html>

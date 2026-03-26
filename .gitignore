@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+.env
+transit_options.json
+transit_options.txt

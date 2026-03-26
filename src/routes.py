@@ -1,0 +1,144 @@
+from datetime import datetime, timedelta
+
+from flask import render_template, request
+
+from config import API_KEY, DEFAULT_MAX_DRIVE_MIN, DEFAULT_THRESHOLD_WAIT_MIN, MAX_OPTIONS
+from services import (
+    geocode_address,
+    find_transit_stations,
+    filter_by_drive_time,
+    get_direct_drive,
+    build_options_from_origin,
+    build_options_from_dest,
+    _rank_score,
+)
+
+FORM_DEFAULTS = {
+    "start": "",
+    "dest": "",
+    "max_drive": DEFAULT_MAX_DRIVE_MIN,
+    "threshold": DEFAULT_THRESHOLD_WAIT_MIN,
+    "departure_date": "",
+    "departure_time": "",
+    "search_mode": "origin",
+}
+
+
+def _parse_departure(date_str, time_str):
+    if not date_str or not time_str:
+        return None
+    try:
+        return datetime.strptime(f"{date_str.strip()} {time_str.strip()}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return None
+
+
+def _read_form():
+    return {key: request.form.get(key, default) for key, default in FORM_DEFAULTS.items()}
+
+
+def _validate_params(saddr, daddr, md, th):
+    if not saddr or not daddr:
+        raise ValueError("Please enter both start and destination addresses.")
+    if md < 1 or md > 60:
+        raise ValueError("Max drive time must be between 1 and 60 minutes.")
+    if th < 0 or th > 30:
+        raise ValueError("Max wait at station must be between 0 and 30 minutes.")
+
+
+def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
+    sc = geocode_address(saddr)
+    dc = geocode_address(daddr)
+
+    direct = get_direct_drive(sc, dc, md, departure_time=base_time)
+
+    if search_mode == "destination":
+        stations = find_transit_stations(dc)
+        filtered = filter_by_drive_time(dc, stations, md, departure_time=base_time)
+        if not filtered and not direct:
+            raise ValueError(
+                "No transit stations within your max drive time from the destination. "
+                "Try increasing the max drive time or choose another destination."
+            )
+        results = build_options_from_dest(filtered, sc, dc, max_options=MAX_OPTIONS, base_time=base_time) if filtered else []
+    else:
+        stations = find_transit_stations(sc)
+        filtered = filter_by_drive_time(sc, stations, md, departure_time=base_time)
+        if not filtered and not direct:
+            raise ValueError(
+                "No transit stations within your max drive time. "
+                "Try increasing the max drive time or choose another start location."
+            )
+        results = build_options_from_origin(filtered, sc, dc, max_options=MAX_OPTIONS,
+                                            threshold_wait=th, base_time=base_time) if filtered else []
+
+    if direct:
+        results.append(direct)
+        results.sort(key=_rank_score)
+        results = results[:MAX_OPTIONS]
+
+    if not results:
+        raise ValueError("No routes found for this trip.")
+
+    for opt in results:
+        arrival_dt = base_time + timedelta(minutes=opt["arrival_min"])
+        opt["arrival_time"] = arrival_dt.strftime("%H:%M")
+
+    map_data = None
+    if results:
+        best = results[0]
+        if best["station"] == "Direct drive":
+            map_data = {
+                "origin": {"lat": sc[0], "lng": sc[1]},
+                "destination": {"lat": dc[0], "lng": dc[1]},
+                "station": None,
+                "api_key": API_KEY,
+                "search_mode": "direct",
+            }
+        elif filtered:
+            station_coords = next((s["location"] for s in filtered if s["name"] == best["station"]), None)
+            if station_coords:
+                map_data = {
+                    "origin": {"lat": sc[0], "lng": sc[1]},
+                    "destination": {"lat": dc[0], "lng": dc[1]},
+                    "station": {"lat": station_coords[0], "lng": station_coords[1], "name": best["station"]},
+                    "api_key": API_KEY,
+                    "search_mode": search_mode,
+                }
+
+    return results, map_data
+
+
+def register_routes(app):
+    @app.route("/", methods=["GET", "POST"])
+    def index():
+        results = None
+        error = None
+
+        if request.method == "POST":
+            try:
+                saddr = (request.form.get("start") or "").strip()
+                daddr = (request.form.get("dest") or "").strip()
+                md = float(request.form.get("max_drive") or DEFAULT_MAX_DRIVE_MIN)
+                th = float(request.form.get("threshold") or DEFAULT_THRESHOLD_WAIT_MIN)
+                search_mode = request.form.get("search_mode", "origin")
+                _validate_params(saddr, daddr, md, th)
+
+                departure = _parse_departure(
+                    request.form.get("departure_date"),
+                    request.form.get("departure_time"),
+                )
+                base_time = departure or datetime.now()
+                results, map_data = _plan_trip(saddr, daddr, md, th, search_mode, base_time)
+            except ValueError as e:
+                error = str(e)
+                map_data = None
+            except Exception as e:
+                error = f"Something went wrong: {e}"
+                map_data = None
+        else:
+            map_data = None
+
+        form = _read_form() if request.method == "POST" else FORM_DEFAULTS.copy()
+
+        return render_template("index.html", results=results, errors=error, form=form, map_data=map_data)
