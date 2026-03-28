@@ -1,6 +1,6 @@
 import os
 
-API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "AIzaSyCt2EM8-62QrLLTvkR91jMhje8ntExUN4E")
+API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 
 DEFAULT_MAX_DRIVE_MIN = 15
 DEFAULT_THRESHOLD_WAIT_MIN = 5
