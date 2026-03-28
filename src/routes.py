@@ -86,25 +86,12 @@ def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
 
     map_data = None
     if results:
-        best = results[0]
-        if best["station"] == "Direct drive":
-            map_data = {
-                "origin": {"lat": sc[0], "lng": sc[1]},
-                "destination": {"lat": dc[0], "lng": dc[1]},
-                "station": None,
-                "api_key": API_KEY,
-                "search_mode": "direct",
-            }
-        elif filtered:
-            station_coords = next((s["location"] for s in filtered if s["name"] == best["station"]), None)
-            if station_coords:
-                map_data = {
-                    "origin": {"lat": sc[0], "lng": sc[1]},
-                    "destination": {"lat": dc[0], "lng": dc[1]},
-                    "station": {"lat": station_coords[0], "lng": station_coords[1], "name": best["station"]},
-                    "api_key": API_KEY,
-                    "search_mode": search_mode,
-                }
+        map_data = {
+            "origin": {"lat": sc[0], "lng": sc[1]},
+            "destination": {"lat": dc[0], "lng": dc[1]},
+            "api_key": API_KEY,
+            "results": results,
+        }
 
     return results, map_data
 

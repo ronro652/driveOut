@@ -105,6 +105,8 @@ def get_direct_drive(origin_coords, dest_coords, max_drive_min, departure_time=N
             "distance_km": drive_km,
             "duration_min": drive_min,
             "wait_min": 0.0,
+            "start_location": _coords_to_loc(origin_coords),
+            "end_location": _coords_to_loc(dest_coords),
         }],
     }
 
@@ -128,8 +130,14 @@ def get_walking_info(origin_coords, dest_coords):
     }
 
 
+def _coords_to_loc(coords):
+    return {"lat": coords[0], "lng": coords[1]}
+
+
 def _make_drive_or_walk_step(station, origin_coords, dest_coords, instruction):
     """Create a DRIVING step, or replace with WALKING if drive is short enough."""
+    start_loc = _coords_to_loc(origin_coords)
+    end_loc = _coords_to_loc(dest_coords)
     if station["drive_time_min"] <= WALK_THRESHOLD_MIN:
         walk = get_walking_info(origin_coords, dest_coords)
         if walk:
@@ -139,6 +147,8 @@ def _make_drive_or_walk_step(station, origin_coords, dest_coords, instruction):
                 "distance_km": walk["distance_km"],
                 "duration_min": walk["duration_min"],
                 "wait_min": 0.0,
+                "start_location": start_loc,
+                "end_location": end_loc,
             }, walk["duration_min"]
     return {
         "instruction": instruction,
@@ -146,6 +156,8 @@ def _make_drive_or_walk_step(station, origin_coords, dest_coords, instruction):
         "distance_km": station["drive_distance_km"],
         "duration_min": station["drive_time_min"],
         "wait_min": 0.0,
+        "start_location": start_loc,
+        "end_location": end_loc,
     }, station["drive_time_min"]
 
 
@@ -153,11 +165,15 @@ def _parse_transit_steps(leg):
     steps = []
     for step in leg["steps"]:
         raw = step.get("html_instructions") or step.get("instructions", "")
+        start_loc = step.get("start_location", {})
+        end_loc = step.get("end_location", {})
         info = {
             "instruction": _strip_html(raw) or "Continue",
             "travel_mode": step.get("travel_mode", "TRANSIT"),
             "distance_km": round(step["distance"]["value"] / 1000, 1),
             "duration_min": round(step["duration"]["value"] / 60, 1),
+            "start_location": {"lat": start_loc.get("lat"), "lng": start_loc.get("lng")},
+            "end_location": {"lat": end_loc.get("lat"), "lng": end_loc.get("lng")},
         }
         if info["travel_mode"] == "TRANSIT":
             d = step.get("transit_details", {})

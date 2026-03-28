@@ -203,6 +203,11 @@
       border-color: rgba(124, 58, 237, 0.4);
     }
 
+    .option-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+    }
+
     .option-card:last-child {
       margin-bottom: 0;
     }
@@ -470,7 +475,7 @@
       {% if map_data %}
       <div class="card map-card">
         <h2 class="card-title">Route map</h2>
-        <p class="subtitle" style="margin-bottom: 1rem;">Best option: {% if map_data.station %}start → {{ map_data.station.name }} → destination{% else %}drive directly to destination{% endif %}</p>
+        <p class="subtitle" style="margin-bottom: 1rem;">Click a route below to view it on the map</p>
         <div id="map" class="map-container"></div>
       </div>
       {% endif %}
@@ -481,7 +486,7 @@
         </div>
         <ul class="steps-list" style="list-style: none;">
           {% for opt in results %}
-            <li class="option-card">
+            <li class="option-card" data-option-index="{{ loop.index0 }}" style="cursor: pointer;">
               <div class="option-header">
                 <span class="option-total">Arrive {{ opt.arrival_time }}</span>
                 <span class="option-meta"><span>{{ opt.total_time_min }} min total</span></span>
@@ -532,15 +537,120 @@
       var apiKey = mapData.api_key;
       if (!apiKey) return;
 
-      function initMap() {
+      var MODE_COLORS = {
+        DRIVING:  { stroke: '#3b82f6', fill: '#3b82f6', border: '#1d4ed8' },
+        TRANSIT:  { stroke: '#7c3aed', fill: '#7c3aed', border: '#5b21b6' },
+        WALKING:  { stroke: '#22c55e', fill: '#22c55e', border: '#166534' },
+        WAITING:  null
+      };
+
+      var gmap, dirService;
+      var activeRenderers = [];
+      var activeMarkers = [];
+
+      function clearMap() {
+        activeRenderers.forEach(function(r) { r.setMap(null); });
+        activeRenderers = [];
+        activeMarkers.forEach(function(m) { m.setMap(null); });
+        activeMarkers = [];
+      }
+
+      function addMarker(position, label, color, borderColor, title) {
+        var m = new google.maps.Marker({
+          position: position, map: gmap, title: title,
+          label: { text: label, color: 'white', fontWeight: 'bold' },
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
+            fillColor: color, fillOpacity: 1, strokeColor: borderColor, strokeWeight: 2 }
+        });
+        activeMarkers.push(m);
+      }
+
+      function renderLeg(step, callback) {
+        var colors = MODE_COLORS[step.travel_mode];
+        if (!colors || !step.start_location || !step.end_location) {
+          if (callback) callback();
+          return;
+        }
+        var start = new google.maps.LatLng(step.start_location.lat, step.start_location.lng);
+        var end = new google.maps.LatLng(step.end_location.lat, step.end_location.lng);
+
+        var travelMode = step.travel_mode === 'WALKING'
+          ? google.maps.TravelMode.WALKING
+          : step.travel_mode === 'TRANSIT'
+            ? google.maps.TravelMode.TRANSIT
+            : google.maps.TravelMode.DRIVING;
+
+        var request = { origin: start, destination: end, travelMode: travelMode };
+        if (travelMode === google.maps.TravelMode.TRANSIT) {
+          request.transitOptions = { modes: ['BUS','RAIL','SUBWAY','TRAIN','TRAM','METRO_RAIL'] };
+        }
+
+        var renderer = new google.maps.DirectionsRenderer({
+          map: gmap, suppressMarkers: true, preserveViewport: true,
+          polylineOptions: { strokeColor: colors.stroke, strokeWeight: 5, strokeOpacity: 0.85 }
+        });
+        activeRenderers.push(renderer);
+
+        dirService.route(request, function(response, status) {
+          if (status === 'OK') renderer.setDirections(response);
+          if (callback) callback();
+        });
+      }
+
+      function showOption(index) {
+        clearMap();
+        var opt = mapData.results[index];
+        if (!opt) return;
+
         var origin = new google.maps.LatLng(mapData.origin.lat, mapData.origin.lng);
         var dest = new google.maps.LatLng(mapData.destination.lat, mapData.destination.lng);
-        var station = mapData.station ? new google.maps.LatLng(mapData.station.lat, mapData.station.lng) : null;
-        var isDirect = mapData.search_mode === 'direct';
+        var bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(dest);
 
-        var map = new google.maps.Map(document.getElementById('map'), {
+        addMarker(origin, 'A', '#22c55e', '#166534', 'Start');
+        addMarker(dest, String.fromCharCode(65 + Math.min(opt.steps.length, 25)), '#ef4444', '#b91c1c', 'Destination');
+
+        var waypointLabel = 66; // 'B'
+        var steps = opt.steps.filter(function(s) { return MODE_COLORS[s.travel_mode] && s.start_location && s.end_location; });
+
+        steps.forEach(function(step, i) {
+          var stepStart = new google.maps.LatLng(step.start_location.lat, step.start_location.lng);
+          var stepEnd = new google.maps.LatLng(step.end_location.lat, step.end_location.lng);
+          bounds.extend(stepStart);
+          bounds.extend(stepEnd);
+
+          if (i > 0 && step.travel_mode !== steps[i-1].travel_mode) {
+            var colors = MODE_COLORS[step.travel_mode];
+            addMarker(stepStart, String.fromCharCode(waypointLabel++), colors.fill, colors.border,
+              step.travel_mode + ' leg start');
+          }
+        });
+
+        gmap.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
+
+        // Render each leg sequentially to avoid API rate limits
+        var i = 0;
+        function next() {
+          if (i < steps.length) {
+            renderLeg(steps[i++], next);
+          }
+        }
+        next();
+
+        // Highlight the active card
+        document.querySelectorAll('.option-card').forEach(function(card) {
+          card.classList.remove('active');
+        });
+        var activeCard = document.querySelector('.option-card[data-option-index="' + index + '"]');
+        if (activeCard) activeCard.classList.add('active');
+      }
+
+      function initMap() {
+        var origin = new google.maps.LatLng(mapData.origin.lat, mapData.origin.lng);
+        gmap = new google.maps.Map(document.getElementById('map'), {
           zoom: 10,
-          center: station || origin,
+          center: origin,
           styles: [
             { featureType: 'poi', stylers: [{ visibility: 'off' }] },
             { featureType: 'transit', stylers: [{ visibility: 'simplified' }] }
@@ -550,63 +660,19 @@
           fullscreenControl: true,
           zoomControl: true
         });
+        dirService = new google.maps.DirectionsService();
 
-        var bounds = new google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(dest);
-        if (station) bounds.extend(station);
-        map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
+        // Show first option by default
+        showOption(0);
 
-        new google.maps.Marker({
-          position: origin, map: map, title: 'Start',
-          label: { text: 'A', color: 'white', fontWeight: 'bold' },
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
-            fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#166534', strokeWeight: 2 }
-        });
-        if (station) {
-          new google.maps.Marker({
-            position: station, map: map, title: mapData.station.name || 'Transit station',
-            label: { text: 'B', color: 'white', fontWeight: 'bold' },
-            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
-              fillColor: '#7c3aed', fillOpacity: 1, strokeColor: '#5b21b6', strokeWeight: 2 }
+        // Click on option cards to switch
+        document.querySelectorAll('.option-card[data-option-index]').forEach(function(card) {
+          card.addEventListener('click', function() {
+            var idx = parseInt(this.getAttribute('data-option-index'), 10);
+            showOption(idx);
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           });
-        }
-        new google.maps.Marker({
-          position: dest, map: map, title: 'Destination',
-          label: { text: isDirect ? 'B' : 'C', color: 'white', fontWeight: 'bold' },
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
-            fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#b91c1c', strokeWeight: 2 }
         });
-
-        var dirService = new google.maps.DirectionsService();
-        var driveRenderer = new google.maps.DirectionsRenderer({
-          map: map, suppressMarkers: true, preserveViewport: true,
-          polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 5, strokeOpacity: 0.9 }
-        });
-
-        if (isDirect) {
-          dirService.route(
-            { origin: origin, destination: dest, travelMode: google.maps.TravelMode.DRIVING },
-            function(response, status) { if (status === 'OK') driveRenderer.setDirections(response); }
-          );
-        } else {
-          var transitRenderer = new google.maps.DirectionsRenderer({
-            map: map, suppressMarkers: true, preserveViewport: true,
-            polylineOptions: { strokeColor: '#7c3aed', strokeWeight: 5, strokeOpacity: 0.9 }
-          });
-          var isDest = mapData.search_mode === 'destination';
-          dirService.route(
-            { origin: isDest ? station : origin, destination: isDest ? dest : station,
-              travelMode: google.maps.TravelMode.DRIVING },
-            function(response, status) { if (status === 'OK') driveRenderer.setDirections(response); }
-          );
-          dirService.route(
-            { origin: isDest ? origin : station, destination: isDest ? station : dest,
-              travelMode: google.maps.TravelMode.TRANSIT,
-              transitOptions: { modes: ['BUS', 'RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL'] } },
-            function(response, status) { if (status === 'OK') transitRenderer.setDirections(response); }
-          );
-        }
       }
 
       var s = document.createElement('script');
