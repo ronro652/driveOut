@@ -309,6 +309,15 @@
     .step-mode.walking { color: var(--success); }
     .step-mode.waiting { color: var(--text-muted); }
 
+    .step-instruction {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .step-instruction.driving { color: #3b82f6; }
+    .step-instruction.transit { color: var(--accent); }
+    .step-instruction.walking { color: var(--success); }
+    .step-instruction.waiting { color: var(--text-muted); }
+
     .step-body {
       flex: 1;
       min-width: 0;
@@ -374,9 +383,15 @@
     }
 
     .step-stops {
-      font-size: 0.8rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-top: 0.3rem;
+    }
+
+    .step-stops .stop-arrow {
       color: var(--text-muted);
-      margin-top: 0.1rem;
+      margin: 0 0.3rem;
     }
 
     .radio-group {
@@ -583,11 +598,11 @@
                             <span class="step-detail wait" style="margin: 0;">wait {{ step.wait_min }} min</span>
                           {% endif %}
                         </div>
-                        <div class="step-stops">{{ step.departure_stop }} → {{ step.arrival_stop }}</div>
+                        <div class="step-stops">{{ step.departure_stop }} <span class="stop-arrow">→</span> {{ step.arrival_stop }}</div>
                       </div>
                     {% else %}
                       <div class="step-body">
-                        <div>{{ step.instruction }}</div>
+                        <div class="step-instruction {{ step.travel_mode|lower }}">{{ step.instruction }}</div>
                         <div class="step-detail">
                           {{ step.distance_km }} km · <span class="step-duration" style="font-size: 0.85rem;">{{ step.duration_min }} min</span>
                           {% if step.wait_min and step.wait_min > 0 %}
