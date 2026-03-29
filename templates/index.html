@@ -653,16 +653,28 @@
         var start = new google.maps.LatLng(step.start_location.lat, step.start_location.lng);
         var end = new google.maps.LatLng(step.end_location.lat, step.end_location.lng);
 
+        // For transit legs, draw a dashed polyline (Directions API is unreliable for transit)
+        if (step.travel_mode === 'TRANSIT') {
+          var line = new google.maps.Polyline({
+            path: [start, end],
+            map: gmap,
+            strokeColor: colors.stroke,
+            strokeWeight: 4,
+            strokeOpacity: 0,
+            icons: [{
+              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeWeight: 4, scale: 3 },
+              offset: '0', repeat: '16px'
+            }]
+          });
+          activeRenderers.push({ setMap: function(m) { line.setMap(m); } });
+          if (callback) callback();
+          return;
+        }
+
+        // For driving/walking, use Directions API for accurate road paths
         var travelMode = step.travel_mode === 'WALKING'
           ? google.maps.TravelMode.WALKING
-          : step.travel_mode === 'TRANSIT'
-            ? google.maps.TravelMode.TRANSIT
-            : google.maps.TravelMode.DRIVING;
-
-        var request = { origin: start, destination: end, travelMode: travelMode };
-        if (travelMode === google.maps.TravelMode.TRANSIT) {
-          request.transitOptions = { modes: ['BUS','RAIL','SUBWAY','TRAIN','TRAM','METRO_RAIL'] };
-        }
+          : google.maps.TravelMode.DRIVING;
 
         var renderer = new google.maps.DirectionsRenderer({
           map: gmap, suppressMarkers: true, preserveViewport: true,
@@ -670,10 +682,12 @@
         });
         activeRenderers.push(renderer);
 
-        dirService.route(request, function(response, status) {
-          if (status === 'OK') renderer.setDirections(response);
-          if (callback) callback();
-        });
+        dirService.route({ origin: start, destination: end, travelMode: travelMode },
+          function(response, status) {
+            if (status === 'OK') renderer.setDirections(response);
+            if (callback) callback();
+          }
+        );
       }
 
       function showOption(index) {
