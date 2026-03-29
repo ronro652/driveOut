@@ -178,8 +178,11 @@ def _parse_transit_steps(leg):
         if info["travel_mode"] == "TRANSIT":
             d = step.get("transit_details", {})
             line = d.get("line", {})
+            vehicle = line.get("vehicle", {})
+            vehicle_type = (vehicle.get("type") or "").upper()
             info.update({
                 "line_name": line.get("short_name") or line.get("name") or "Transit",
+                "vehicle_type": vehicle_type,
                 "departure_time_epoch": d.get("departure_time", {}).get("value"),
                 "arrival_time_epoch": d.get("arrival_time", {}).get("value"),
                 "departure_stop": (d.get("departure_stop") or {}).get("name", ""),
@@ -229,6 +232,15 @@ def _resolve_waits(transit_steps, cursor):
     return steps, cursor
 
 
+def _stamp_step_times(steps, start_time):
+    """Add a human-readable start_time to each step."""
+    cursor = start_time
+    for s in steps:
+        s["start_time"] = cursor.strftime("%H:%M")
+        wait = s.get("wait_min", 0)
+        cursor += timedelta(minutes=wait + s["duration_min"])
+
+
 def _count_legs(option):
     """Count transport legs only (DRIVING and TRANSIT, not WALKING or WAITING)."""
     return sum(1 for s in option["steps"] if s["travel_mode"] in ("DRIVING", "TRANSIT"))
@@ -272,6 +284,7 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
                     sc["wait_min"] = 0.0
                     steps.append(sc)
                 total = round(wait_before + move_min + threshold_wait + leg["transit_time_min"], 1)
+                _stamp_step_times(steps, base)
                 all_opts.append({"wait_before_min": wait_before, "station": st["name"],
                                  "total_time_min": total, "arrival_min": total, "steps": steps})
             else:
@@ -279,6 +292,7 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
                 resolved, cursor = _resolve_waits(leg["steps"], arrival)
                 steps.extend(resolved)
                 total = round((cursor - base).total_seconds() / 60, 1)
+                _stamp_step_times(steps, base)
                 all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                                  "total_time_min": total, "arrival_min": total, "steps": steps})
 
@@ -299,6 +313,7 @@ def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, 
             resolved, cursor = _resolve_waits(leg["steps"], base)
             steps = resolved + [move_step]
             total = round((cursor - base).total_seconds() / 60 + move_min, 1)
+            _stamp_step_times(steps, base)
             all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                              "total_time_min": total, "arrival_min": total, "steps": steps})
 

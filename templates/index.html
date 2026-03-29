@@ -324,13 +324,59 @@
       color: #f59e0b;
     }
 
-    .step-line-name {
-      display: inline-block;
-      font-size: 1rem;
+    .step-time {
+      flex-shrink: 0;
+      font-size: 1.05rem;
       font-weight: 700;
-      color: var(--accent);
-      margin-top: 0.25rem;
+      color: var(--text);
+      white-space: nowrap;
+      width: 3.2rem;
+      text-align: right;
+    }
+
+    .step-duration {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .step-line-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 700;
       letter-spacing: 0.02em;
+      margin-bottom: 0.3rem;
+    }
+
+    .step-line-badge.bus {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .step-line-badge.train, .step-line-badge.metro {
+      background: rgba(124, 58, 237, 0.15);
+      color: #a78bfa;
+    }
+
+    .step-line-badge.tram {
+      background: rgba(234, 179, 8, 0.15);
+      color: #fbbf24;
+    }
+
+    .step-line-badge.other {
+      background: rgba(161, 161, 170, 0.15);
+      color: var(--text-muted);
+    }
+
+    .step-stops {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
     }
 
     .radio-group {
@@ -400,6 +446,15 @@
     </symbol>
     <symbol id="icon-transit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="4" width="16" height="12" rx="1"/><path d="M4 10h16"/><path d="M8 16h2"/><path d="M14 16h2"/><path d="M7 4v4"/><path d="M17 4v4"/>
+    </symbol>
+    <symbol id="icon-bus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 4h14a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1z"/><path d="M4 10h16"/><circle cx="7.5" cy="15.5" r="1.5"/><circle cx="16.5" cy="15.5" r="1.5"/><path d="M4 7h16"/><path d="M8 20v1"/><path d="M16 20v1"/>
+    </symbol>
+    <symbol id="icon-train" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3h12a1 1 0 0 1 1 1v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V4a1 1 0 0 1 1-1z"/><path d="M5 10h14"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/><path d="M9 19l-2 3"/><path d="M15 19l2 3"/>
+    </symbol>
+    <symbol id="icon-tram" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 4h10a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1z"/><path d="M6 10h12"/><circle cx="9" cy="14.5" r="1"/><circle cx="15" cy="14.5" r="1"/><path d="M9 18l-2 3"/><path d="M15 18l2 3"/><path d="M12 1v3"/><path d="M8 1h8"/>
     </symbol>
     <symbol id="icon-walking" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="5" r="2.5"/><path d="M12 14v6"/><path d="m9 18 3-4 2 3 4-6"/>
@@ -500,23 +555,47 @@
               <ul class="steps-list">
                 {% for step in opt.steps %}
                   <li class="step">
-                    <span class="step-num" aria-hidden="true">{{ loop.index }}</span>
-                    <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
-                      <svg class="step-icon"><use href="#icon-{{ step.travel_mode|lower }}"/></svg>
-                    </span>
-                    <span class="step-mode {{ step.travel_mode|lower }}">{{ step.travel_mode }}</span>
-                    <div class="step-body">
-                      <div>{{ step.instruction }}</div>
-                      {% if step.travel_mode == 'TRANSIT' and step.line_name %}
-                        <div class="step-line-name">{{ step.line_name }} — {{ step.departure_stop }} → {{ step.arrival_stop }}</div>
+                    <span class="step-time">{{ step.start_time }}</span>
+                    {% if step.travel_mode == 'TRANSIT' and step.vehicle_type %}
+                      {% if step.vehicle_type == 'BUS' %}
+                        {% set icon_id = 'bus' %}
+                      {% elif step.vehicle_type in ('HEAVY_RAIL', 'LONG_DISTANCE_TRAIN', 'COMMUTER_TRAIN', 'HIGH_SPEED_TRAIN', 'RAIL') %}
+                        {% set icon_id = 'train' %}
+                      {% elif step.vehicle_type in ('TRAM', 'LIGHT_RAIL', 'METRO_RAIL', 'MONORAIL') %}
+                        {% set icon_id = 'tram' %}
+                      {% elif step.vehicle_type == 'SUBWAY' %}
+                        {% set icon_id = 'train' %}
+                      {% else %}
+                        {% set icon_id = 'transit' %}
                       {% endif %}
-                      <div class="step-detail">
-                        {{ step.distance_km }} km · {{ step.duration_min }} min
-                        {% if step.wait_min and step.wait_min > 0 %}
-                          <span class="wait">· wait {{ step.wait_min }} min</span>
-                        {% endif %}
+                    {% else %}
+                      {% set icon_id = step.travel_mode|lower %}
+                    {% endif %}
+                    <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
+                      <svg class="step-icon"><use href="#icon-{{ icon_id }}"/></svg>
+                    </span>
+                    {% if step.travel_mode == 'TRANSIT' and step.line_name %}
+                      <div class="step-body">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                          <span class="step-line-badge {{ icon_id }}">{{ step.line_name }}</span>
+                          <span class="step-duration">{{ step.duration_min }} min</span>
+                          {% if step.wait_min and step.wait_min > 0 %}
+                            <span class="step-detail wait" style="margin: 0;">wait {{ step.wait_min }} min</span>
+                          {% endif %}
+                        </div>
+                        <div class="step-stops">{{ step.departure_stop }} → {{ step.arrival_stop }}</div>
                       </div>
-                    </div>
+                    {% else %}
+                      <div class="step-body">
+                        <div>{{ step.instruction }}</div>
+                        <div class="step-detail">
+                          {{ step.distance_km }} km · <span class="step-duration" style="font-size: 0.85rem;">{{ step.duration_min }} min</span>
+                          {% if step.wait_min and step.wait_min > 0 %}
+                            <span class="wait">· wait {{ step.wait_min }} min</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endif %}
                   </li>
                 {% endfor %}
               </ul>
@@ -558,9 +637,9 @@
       function addMarker(position, label, color, borderColor, title) {
         var m = new google.maps.Marker({
           position: position, map: gmap, title: title,
-          label: { text: label, color: 'white', fontWeight: 'bold' },
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
-            fillColor: color, fillOpacity: 1, strokeColor: borderColor, strokeWeight: 2 }
+          label: { text: label, color: 'white', fontWeight: 'bold', fontSize: '11px' },
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 9,
+            fillColor: color, fillOpacity: 1, strokeColor: borderColor, strokeWeight: 1.5 }
         });
         activeMarkers.push(m);
       }

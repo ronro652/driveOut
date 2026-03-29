@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 

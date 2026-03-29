@@ -11,6 +11,7 @@ from services import (
     build_options_from_origin,
     build_options_from_dest,
     _rank_score,
+    _stamp_step_times,
 )
 
 FORM_DEFAULTS = {
@@ -83,6 +84,8 @@ def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
     for opt in results:
         arrival_dt = base_time + timedelta(minutes=opt["arrival_min"])
         opt["arrival_time"] = arrival_dt.strftime("%H:%M")
+        if "start_time" not in opt["steps"][0]:
+            _stamp_step_times(opt["steps"], base_time)
 
     map_data = None
     if results:
