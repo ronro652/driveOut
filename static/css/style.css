@@ -304,6 +304,61 @@ h1 {
 .btn:hover  { background: var(--accent-hover); }
 .btn:active { transform: scale(0.98); }
 
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+
+.btn-spinner[hidden] { display: none; }
+.btn-spinner:not([hidden]) { display: inline-block; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Swap button ── */
+
+.input-with-swap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input-with-swap input {
+  flex: 1;
+}
+
+.swap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, transform 0.2s;
+  flex-shrink: 0;
+}
+
+.swap-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: rotate(180deg);
+}
+
 .hint {
   font-size: 0.8rem;
   color: var(--text-muted);
