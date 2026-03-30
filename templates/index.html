@@ -51,10 +51,12 @@
           <div class="field">
             <label for="start">Start address</label>
             <input type="text" id="start" name="start" placeholder="e.g. 123 Main St, City" value="{{ form.start or '' }}" autocomplete="address-line1">
+            <div class="favorites-row" id="fav-start"></div>
           </div>
           <div class="field">
             <label for="dest">Destination address</label>
             <input type="text" id="dest" name="dest" placeholder="e.g. Central Station" value="{{ form.dest or '' }}" autocomplete="address-line1">
+            <div class="favorites-row" id="fav-dest"></div>
           </div>
           <div class="row-2">
             <div class="field">
@@ -139,7 +141,8 @@
     {% endif %}
   </div>
 
-  {# ── Map script ── #}
+  {# ── Scripts ── #}
+  <script src="{{ url_for('static', filename='js/favorites.js') }}"></script>
   {% if map_data %}
   <script type="application/json" id="map-data">{{ map_data | tojson }}</script>
   <script src="{{ url_for('static', filename='js/map.js') }}"></script>
