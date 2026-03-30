@@ -1,0 +1,17 @@
+{
+  "name": "Drive-to-Transit Planner",
+  "short_name": "DriveOut",
+  "description": "Plan trips by driving to transit stations",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f12",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

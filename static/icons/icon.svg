@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#7c3aed"/>
+  <g transform="translate(256,256)" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Car -->
+    <path d="M-60 20h120l-16-50H-44z" fill="rgba(255,255,255,0.2)"/>
+    <path d="M-70 20v30h140v-30"/>
+    <circle cx="-40" cy="50" r="14" fill="#fff"/>
+    <circle cx="40" cy="50" r="14" fill="#fff"/>
+    <!-- Arrow -->
+    <path d="M0-100v60m-25-25l25 25 25-25" stroke-width="20"/>
+    <!-- Rail -->
+    <path d="M-30 80h60M-30 100h60" stroke-width="8" opacity="0.5"/>
+  </g>
+</svg>
