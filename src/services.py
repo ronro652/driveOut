@@ -253,6 +253,33 @@ def _rank_score(option):
     return arrival * (1 + LEG_PENALTY * legs)
 
 
+def _transit_line_key(option):
+    """Extract a tuple of (line_name, vehicle_type) for all TRANSIT steps — the route's transit signature."""
+    return tuple(
+        (s.get("line_name", ""), s.get("vehicle_type", ""))
+        for s in option["steps"] if s["travel_mode"] == "TRANSIT"
+    )
+
+
+def _drive_time_of(option):
+    """Total driving/walking time in the option (the non-transit transport leg)."""
+    return sum(s["duration_min"] for s in option["steps"] if s["travel_mode"] in ("DRIVING", "WALKING"))
+
+
+def _dedup_by_closer_station(options):
+    """For options sharing the same transit lines, keep only the one with the shortest drive."""
+    best = {}
+    for opt in options:
+        key = _transit_line_key(opt)
+        if not key:
+            # No transit steps (e.g. direct drive) — always keep
+            best.setdefault(("__direct__", id(opt)), opt)
+            continue
+        if key not in best or _drive_time_of(opt) < _drive_time_of(best[key]):
+            best[key] = opt
+    return list(best.values())
+
+
 def build_options_from_origin(stations, start_coords, dest_coords, max_options=5, threshold_wait=5, base_time=None):
     """Drive (or walk) from origin to station, then transit to destination."""
     base = base_time or datetime.now()
@@ -296,6 +323,7 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
                 all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                                  "total_time_min": total, "arrival_min": total, "steps": steps})
 
+    all_opts = _dedup_by_closer_station(all_opts)
     all_opts.sort(key=_rank_score)
     return all_opts[:max_options]
 
@@ -317,5 +345,6 @@ def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, 
             all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                              "total_time_min": total, "arrival_min": total, "steps": steps})
 
+    all_opts = _dedup_by_closer_station(all_opts)
     all_opts.sort(key=_rank_score)
     return all_opts[:max_options]
