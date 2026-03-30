@@ -27,6 +27,25 @@ body {
   line-height: 1.5;
 }
 
+/* ── Hero ── */
+
+.hero-bg {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+  overflow: hidden;
+}
+
+.hero-scene {
+  display: block;
+  width: 100%;
+  height: 100px;
+  opacity: 0.7;
+}
+
+@media (max-width: 500px) {
+  .hero-scene { height: 70px; }
+}
+
 /* ── Layout ── */
 
 .page {
@@ -40,7 +59,7 @@ h1 {
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+  background: linear-gradient(135deg, #c084fc 0%, #7c3aed 40%, #3b82f6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -76,6 +95,19 @@ h1 {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #3b82f6, #22c55e);
+  opacity: 0.6;
 }
 
 .card-title {
@@ -289,19 +321,21 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
   color: #fff;
-  background: var(--accent);
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s, transform 0.05s;
+  transition: filter 0.15s, transform 0.05s;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.3);
 }
 
-.btn:hover  { background: var(--accent-hover); }
+.btn:hover  { filter: brightness(1.15); }
 .btn:active { transform: scale(0.98); }
 
 .btn:disabled {
@@ -445,6 +479,7 @@ h1 {
 .option-card.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, var(--surface-2) 100%);
 }
 
 .option-card:last-child { margin-bottom: 0; }
@@ -493,6 +528,11 @@ h1 {
 }
 
 .step:last-child { margin-bottom: 0; }
+
+.step:has(.step-icon-wrap.driving) { border-left-color: rgba(59, 130, 246, 0.4); }
+.step:has(.step-icon-wrap.transit) { border-left-color: rgba(124, 58, 237, 0.4); }
+.step:has(.step-icon-wrap.walking) { border-left-color: rgba(34, 197, 94, 0.4); }
+.step:has(.step-icon-wrap.waiting) { border-left-color: rgba(161, 161, 170, 0.2); }
 
 .step-icon-wrap {
   flex-shrink: 0;
