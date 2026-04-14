@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 from flask import render_template, request
 
-from config import API_KEY, DEFAULT_MAX_DRIVE_MIN, DEFAULT_THRESHOLD_WAIT_MIN, MAX_OPTIONS
+from config import API_KEY, DEFAULT_MAX_DRIVE_MIN, DEFAULT_THRESHOLD_WAIT_MIN, MAX_OPTIONS, get_logger
+
+log = get_logger("routes")
 from services import (
     geocode_address,
     find_transit_stations,
@@ -48,6 +50,7 @@ def _validate_params(saddr, daddr, md, th):
 
 
 def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
+    log.info("plan_trip: '%s' -> '%s', mode=%s, max_drive=%s, depart=%s", saddr, daddr, search_mode, md, base_time)
     sc = geocode_address(saddr)
     dc = geocode_address(daddr)
 
@@ -81,6 +84,7 @@ def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
     if not results:
         raise ValueError("No routes found for this trip.")
 
+    log.info("Returning %d route options", len(results))
     for opt in results:
         arrival_dt = base_time + timedelta(minutes=opt["arrival_min"])
         opt["arrival_time"] = arrival_dt.strftime("%H:%M")
@@ -121,9 +125,11 @@ def register_routes(app):
                 base_time = departure or datetime.now()
                 results, map_data = _plan_trip(saddr, daddr, md, th, search_mode, base_time)
             except ValueError as e:
+                log.warning("Validation error: %s", e)
                 error = str(e)
                 map_data = None
             except Exception as e:
+                log.exception("Unexpected error during trip planning")
                 error = f"Something went wrong: {e}"
                 map_data = None
         else:

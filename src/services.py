@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 
 import googlemaps
 
-from config import API_KEY, STATION_SEARCH_RADIUS_M, MAX_GEOCODE_CACHE, WALK_THRESHOLD_MIN, LEG_PENALTY
+from config import API_KEY, STATION_SEARCH_RADIUS_M, MAX_GEOCODE_CACHE, WALK_THRESHOLD_MIN, LEG_PENALTY, get_logger
+
+log = get_logger("services")
 
 gmaps = googlemaps.Client(key=API_KEY)
 _geocode_cache = {}
@@ -24,24 +26,32 @@ def geocode_address(address):
     if not key:
         raise ValueError("Start and destination addresses are required.")
     if key in _geocode_cache:
+        log.debug("Geocode cache hit: %s", key)
         return _geocode_cache[key]
     if len(_geocode_cache) >= MAX_GEOCODE_CACHE:
+        log.info("Geocode cache full (%d entries), clearing", len(_geocode_cache))
         _geocode_cache.clear()
+    log.info("API  geocode: %s", address)
     results = gmaps.geocode(address)
     if not results:
+        log.warning("Geocode failed: '%s'", address)
         raise ValueError(f"Could not find location: '{address}'")
     loc = results[0]["geometry"]["location"]
     coords = (loc["lat"], loc["lng"])
     _geocode_cache[key] = coords
+    log.debug("Geocode result: %s -> %s", address, coords)
     return coords
 
 
 def find_transit_stations(coords, radius_m=STATION_SEARCH_RADIUS_M):
+    log.info("API  places_nearby: coords=%s radius=%dm", coords, radius_m)
     places = gmaps.places_nearby(location=coords, radius=radius_m, type="transit_station")
-    return [
+    stations = [
         {"name": p["name"], "location": (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])}
         for p in places.get("results", [])
     ]
+    log.info("Found %d transit stations", len(stations))
+    return stations
 
 
 def filter_by_drive_time(origin_coords, stations, max_drive_min, departure_time=None):
@@ -50,6 +60,7 @@ def filter_by_drive_time(origin_coords, stations, max_drive_min, departure_time=
     max_drive_sec = max_drive_min * 60
     dep = departure_time or datetime.now()
     destinations = [s["location"] for s in stations]
+    log.info("API  distance_matrix: %d stations, max_drive=%d min", len(stations), max_drive_min)
     matrix = gmaps.distance_matrix(
         origins=[origin_coords],
         destinations=destinations,
@@ -70,11 +81,15 @@ def filter_by_drive_time(origin_coords, stations, max_drive_min, departure_time=
             station["drive_distance_km"] = round(dist / 1000, 1)
             station["drive_time_min"] = round(drive_sec / 60, 1)
             viable.append(station)
+    log.info("Filtered to %d viable stations (within %d min drive)", len(viable), max_drive_min)
+    for s in viable:
+        log.debug("  %s – %.1f min, %.1f km", s["name"], s["drive_time_min"], s["drive_distance_km"])
     return viable
 
 
 def get_direct_drive(origin_coords, dest_coords, max_drive_min, departure_time=None):
     """Return a drive-only option if origin→dest is within max_drive_min, else None."""
+    log.info("API  direct_drive check: max=%d min", max_drive_min)
     dep = departure_time or datetime.now()
     matrix = gmaps.distance_matrix(
         origins=[origin_coords],
@@ -94,6 +109,7 @@ def get_direct_drive(origin_coords, dest_coords, max_drive_min, departure_time=N
     dist_m = el.get("distance", {}).get("value", 0)
     drive_min = round(drive_sec / 60, 1)
     drive_km = round(dist_m / 1000, 1)
+    log.info("Direct drive viable: %.1f min, %.1f km", drive_min, drive_km)
     return {
         "wait_before_min": 0.0,
         "station": "Direct drive",
@@ -198,6 +214,7 @@ def _parse_transit_steps(leg):
 
 def get_transit_options(origin_coords, dest_coords, departure_time=None):
     start_time = departure_time or datetime.now()
+    log.info("API  directions(transit): %s -> %s, depart=%s", origin_coords, dest_coords, start_time)
     routes = gmaps.directions(
         origin=origin_coords,
         destination=dest_coords,
@@ -205,8 +222,11 @@ def get_transit_options(origin_coords, dest_coords, departure_time=None):
         departure_time=start_time,
     )
     if not routes:
+        log.info("No transit routes returned")
         return []
-    return [_parse_transit_steps(route["legs"][0]) for route in routes[:4]]
+    parsed = [_parse_transit_steps(route["legs"][0]) for route in routes[:4]]
+    log.info("Got %d transit route(s)", len(parsed))
+    return parsed
 
 
 def _clean_step(step):
@@ -282,9 +302,11 @@ def _dedup_by_closer_station(options):
 
 def build_options_from_origin(stations, start_coords, dest_coords, max_options=5, threshold_wait=5, base_time=None):
     """Drive (or walk) from origin to station, then transit to destination."""
+    log.info("build_options_from_origin: %d stations, max_options=%d", len(stations), max_options)
     base = base_time or datetime.now()
     all_opts = []
     for st in stations:
+        log.debug("Querying station: %s (%.1f min drive)", st["name"], st["drive_time_min"])
         move_step, move_min = _make_drive_or_walk_step(
             st, start_coords, st["location"], f"Drive to {st['name']}")
         arrival = base + timedelta(minutes=move_min)
@@ -323,16 +345,20 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
                 all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                                  "total_time_min": total, "arrival_min": total, "steps": steps})
 
+    log.info("Built %d raw options from origin", len(all_opts))
     all_opts = _dedup_by_closer_station(all_opts)
+    log.info("After dedup: %d options", len(all_opts))
     all_opts.sort(key=_rank_score)
     return all_opts[:max_options]
 
 
 def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, base_time=None):
     """Transit from origin to station near destination, then drive (or walk) to destination."""
+    log.info("build_options_from_dest: %d stations, max_options=%d", len(stations), max_options)
     base = base_time or datetime.now()
     all_opts = []
     for st in stations:
+        log.debug("Querying station: %s (%.1f min drive)", st["name"], st["drive_time_min"])
         move_step, move_min = _make_drive_or_walk_step(
             st, st["location"], dest_coords, f"Drive from {st['name']} to destination")
         legs = get_transit_options(start_coords, st["location"], departure_time=base)
@@ -345,6 +371,8 @@ def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, 
             all_opts.append({"wait_before_min": 0.0, "station": st["name"],
                              "total_time_min": total, "arrival_min": total, "steps": steps})
 
+    log.info("Built %d raw options from dest", len(all_opts))
     all_opts = _dedup_by_closer_station(all_opts)
+    log.info("After dedup: %d options", len(all_opts))
     all_opts.sort(key=_rank_score)
     return all_opts[:max_options]
