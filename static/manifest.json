@@ -4,8 +4,8 @@
   "description": "Plan trips by driving to transit stations",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f12",
-  "theme_color": "#7c3aed",
+  "background_color": "#080c14",
+  "theme_color": "#e2a13f",
   "icons": [
     {
       "src": "/static/icons/icon.svg",

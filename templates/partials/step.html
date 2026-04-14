@@ -15,30 +15,30 @@
   {% set icon_id = step.travel_mode|lower %}
 {% endif %}
 
-<li class="step">
-  <span class="step-time">{{ step.start_time }}</span>
+<li class="step {{ step.travel_mode|lower }}">
   <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
     <svg class="step-icon"><use href="#icon-{{ icon_id }}"/></svg>
   </span>
+  <span class="step-time">{{ step.start_time }}</span>
 
   {% if step.travel_mode == 'TRANSIT' and step.line_name %}
     <div class="step-body">
-      <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
         <span class="step-line-badge {{ icon_id }}">{{ step.line_name }}</span>
         <span class="step-duration">{{ step.duration_min }} min</span>
         {% if step.wait_min and step.wait_min > 0 %}
           <span class="step-detail wait" style="margin: 0;">wait {{ step.wait_min }} min</span>
         {% endif %}
       </div>
-      <div class="step-stops">{{ step.departure_stop }} <span class="stop-arrow">→</span> {{ step.arrival_stop }}</div>
+      <div class="step-stops">{{ step.departure_stop }} <span class="stop-arrow">&rarr;</span> {{ step.arrival_stop }}</div>
     </div>
   {% else %}
     <div class="step-body">
       <div class="step-instruction {{ step.travel_mode|lower }}">{{ step.instruction }}</div>
       <div class="step-detail">
-        {{ step.distance_km }} km · <span class="step-duration" style="font-size: 0.85rem;">{{ step.duration_min }} min</span>
+        {{ step.distance_km }} km &middot; <span class="step-duration" style="font-size: 0.82rem;">{{ step.duration_min }} min</span>
         {% if step.wait_min and step.wait_min > 0 %}
-          <span class="wait">· wait {{ step.wait_min }} min</span>
+          <span class="wait">&middot; wait {{ step.wait_min }} min</span>
         {% endif %}
       </div>
     </div>
