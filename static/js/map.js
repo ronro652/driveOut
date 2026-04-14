@@ -7,8 +7,8 @@
 
   var MODE_COLORS = {
     DRIVING: { stroke: '#3b82f6', fill: '#3b82f6', border: '#1d4ed8' },
-    TRANSIT: { stroke: '#7c3aed', fill: '#7c3aed', border: '#5b21b6' },
-    WALKING: { stroke: '#22c55e', fill: '#22c55e', border: '#166534' },
+    TRANSIT: { stroke: '#a855f7', fill: '#a855f7', border: '#7e22ce' },
+    WALKING: { stroke: '#10b981', fill: '#10b981', border: '#065f46' },
     WAITING: null
   };
 
@@ -45,7 +45,6 @@
     var start = new google.maps.LatLng(step.start_location.lat, step.start_location.lng);
     var end = new google.maps.LatLng(step.end_location.lat, step.end_location.lng);
 
-    // Transit: dashed polyline (Directions JS API is unreliable for transit)
     if (step.travel_mode === 'TRANSIT') {
       var line = new google.maps.Polyline({
         path: [start, end],
@@ -54,7 +53,7 @@
         strokeWeight: 4,
         strokeOpacity: 0,
         icons: [{
-          icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeWeight: 4, scale: 3 },
+          icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.85, strokeWeight: 4, scale: 3 },
           offset: '0', repeat: '16px'
         }]
       });
@@ -63,14 +62,13 @@
       return;
     }
 
-    // Driving/walking: use Directions API for accurate road paths
     var travelMode = step.travel_mode === 'WALKING'
       ? google.maps.TravelMode.WALKING
       : google.maps.TravelMode.DRIVING;
 
     var renderer = new google.maps.DirectionsRenderer({
       map: gmap, suppressMarkers: true, preserveViewport: true,
-      polylineOptions: { strokeColor: colors.stroke, strokeWeight: 5, strokeOpacity: 0.85 }
+      polylineOptions: { strokeColor: colors.stroke, strokeWeight: 5, strokeOpacity: 0.8 }
     });
     activeRenderers.push(renderer);
 
@@ -94,10 +92,10 @@
     bounds.extend(origin);
     bounds.extend(dest);
 
-    addMarker(origin, 'A', '#22c55e', '#166534', 'Start');
+    addMarker(origin, 'A', '#10b981', '#065f46', 'Start');
     addMarker(dest, String.fromCharCode(65 + Math.min(opt.steps.length, 25)), '#ef4444', '#b91c1c', 'Destination');
 
-    var waypointLabel = 66; // 'B'
+    var waypointLabel = 66;
     var steps = opt.steps.filter(function(s) {
       return MODE_COLORS[s.travel_mode] && s.start_location && s.end_location;
     });
@@ -117,7 +115,6 @@
 
     gmap.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
 
-    // Render each leg sequentially to avoid API rate limits
     var i = 0;
     function next() {
       if (i < steps.length) {
@@ -125,13 +122,23 @@
       }
     }
     next();
+  }
 
-    // Highlight the active card
-    document.querySelectorAll('.option-card').forEach(function(card) {
-      card.classList.remove('active');
+  // Watch for active card changes (driven by form.js)
+  function observeActiveCard() {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.target.classList.contains('active') && m.target.hasAttribute('data-option-index')) {
+          var idx = parseInt(m.target.getAttribute('data-option-index'), 10);
+          showOption(idx);
+          document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
     });
-    var activeCard = document.querySelector('.option-card[data-option-index="' + index + '"]');
-    if (activeCard) activeCard.classList.add('active');
+
+    document.querySelectorAll('.option-card[data-option-index]').forEach(function(card) {
+      observer.observe(card, { attributes: true, attributeFilter: ['class'] });
+    });
   }
 
   function initMap() {
@@ -140,10 +147,17 @@
       zoom: 10,
       center: origin,
       styles: [
+        { elementType: 'geometry', stylers: [{ color: '#0f1520' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#0f1520' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+        { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1929' }] },
         { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        { featureType: 'transit', stylers: [{ visibility: 'simplified' }] }
+        { featureType: 'transit', stylers: [{ visibility: 'simplified' }] },
+        { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#1e293b' }] }
       ],
-      mapTypeControl: true,
+      mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: true,
       zoomControl: true
@@ -151,14 +165,7 @@
     dirService = new google.maps.DirectionsService();
 
     showOption(0);
-
-    document.querySelectorAll('.option-card[data-option-index]').forEach(function(card) {
-      card.addEventListener('click', function() {
-        var idx = parseInt(this.getAttribute('data-option-index'), 10);
-        showOption(idx);
-        document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
-    });
+    observeActiveCard();
   }
 
   var s = document.createElement('script');

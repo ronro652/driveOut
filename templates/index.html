@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drive-to-Transit Planner</title>
+  <title>DriveOut — Drive to Transit Planner</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <meta name="theme-color" content="#7c3aed">
+  <meta name="theme-color" content="#e2a13f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DriveOut">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  {# SVG icon sprite #}
+  {# ── SVG icon sprite ── #}
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
     <symbol id="icon-driving" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 17h1v-4l-2-4H6L4 13v4h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
@@ -39,183 +39,247 @@
     <symbol id="icon-waiting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>
     </symbol>
+    <symbol id="icon-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <symbol id="icon-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>
+    </symbol>
   </svg>
 
-  <div class="hero-bg" aria-hidden="true">
-    <svg class="hero-scene" viewBox="0 0 720 120" preserveAspectRatio="xMidYMid slice">
+  {# ── Grain overlay ── #}
+  <div class="grain" aria-hidden="true"></div>
+
+  {# ── Hero ── #}
+  <header class="hero" aria-hidden="true">
+    <div class="hero-glow"></div>
+    <svg class="hero-scene" viewBox="0 0 720 110" preserveAspectRatio="xMidYMid slice">
       {# Road #}
-      <rect x="0" y="85" width="720" height="8" rx="4" fill="#2e2e36"/>
-      <line x1="0" y1="89" x2="720" y2="89" stroke="#444" stroke-width="1" stroke-dasharray="12 8" opacity="0.5"/>
+      <rect x="0" y="82" width="720" height="6" rx="3" fill="#1e293b"/>
+      <line x1="0" y1="85" x2="720" y2="85" stroke="#334155" stroke-width="1" stroke-dasharray="14 10" opacity="0.4"/>
 
       {# Bus #}
-      <g transform="translate(80,42)">
-        <rect x="0" y="0" width="56" height="38" rx="6" fill="#3b82f6" opacity="0.8"/>
-        <rect x="4" y="4" width="18" height="14" rx="2" fill="#60a5fa" opacity="0.5"/>
-        <rect x="26" y="4" width="18" height="14" rx="2" fill="#60a5fa" opacity="0.5"/>
-        <rect x="48" y="4" width="6" height="14" rx="2" fill="#93c5fd" opacity="0.3"/>
-        <circle cx="14" cy="42" r="6" fill="#e4e4e7"/>
-        <circle cx="42" cy="42" r="6" fill="#e4e4e7"/>
-        <circle cx="14" cy="42" r="3" fill="#2e2e36"/>
-        <circle cx="42" cy="42" r="3" fill="#2e2e36"/>
+      <g class="vehicle vehicle-1" transform="translate(80,40)">
+        <rect x="0" y="0" width="56" height="36" rx="6" fill="#3b82f6" opacity="0.75"/>
+        <rect x="4" y="4" width="18" height="13" rx="2" fill="#60a5fa" opacity="0.4"/>
+        <rect x="26" y="4" width="18" height="13" rx="2" fill="#60a5fa" opacity="0.4"/>
+        <circle cx="14" cy="40" r="5.5" fill="#cbd5e1"/>
+        <circle cx="42" cy="40" r="5.5" fill="#cbd5e1"/>
+        <circle cx="14" cy="40" r="2.5" fill="#0f172a"/>
+        <circle cx="42" cy="40" r="2.5" fill="#0f172a"/>
       </g>
 
       {# Train #}
-      <g transform="translate(260,30)">
-        <rect x="0" y="0" width="80" height="48" rx="8" fill="#7c3aed" opacity="0.8"/>
-        <rect x="6" y="6" width="20" height="16" rx="3" fill="#a78bfa" opacity="0.4"/>
-        <rect x="30" y="6" width="20" height="16" rx="3" fill="#a78bfa" opacity="0.4"/>
-        <rect x="54" y="6" width="20" height="16" rx="3" fill="#a78bfa" opacity="0.4"/>
-        <rect x="0" y="48" width="80" height="4" rx="2" fill="#5b21b6" opacity="0.6"/>
-        <circle cx="20" cy="56" r="6" fill="#e4e4e7"/>
-        <circle cx="40" cy="56" r="6" fill="#e4e4e7"/>
-        <circle cx="60" cy="56" r="6" fill="#e4e4e7"/>
-        <circle cx="20" cy="56" r="3" fill="#2e2e36"/>
-        <circle cx="40" cy="56" r="3" fill="#2e2e36"/>
-        <circle cx="60" cy="56" r="3" fill="#2e2e36"/>
+      <g class="vehicle vehicle-2" transform="translate(260,28)">
+        <rect x="0" y="0" width="80" height="46" rx="8" fill="#e2a13f" opacity="0.7"/>
+        <rect x="6" y="6" width="20" height="14" rx="3" fill="#fbbf24" opacity="0.35"/>
+        <rect x="30" y="6" width="20" height="14" rx="3" fill="#fbbf24" opacity="0.35"/>
+        <rect x="54" y="6" width="20" height="14" rx="3" fill="#fbbf24" opacity="0.35"/>
+        <rect x="0" y="46" width="80" height="3" rx="1.5" fill="#b8860b" opacity="0.5"/>
+        <circle cx="20" cy="53" r="5.5" fill="#cbd5e1"/>
+        <circle cx="40" cy="53" r="5.5" fill="#cbd5e1"/>
+        <circle cx="60" cy="53" r="5.5" fill="#cbd5e1"/>
+        <circle cx="20" cy="53" r="2.5" fill="#0f172a"/>
+        <circle cx="40" cy="53" r="2.5" fill="#0f172a"/>
+        <circle cx="60" cy="53" r="2.5" fill="#0f172a"/>
       </g>
 
       {# Car #}
-      <g transform="translate(480,52)">
-        <path d="M4,20 L12,4 L42,4 L50,20 Z" fill="#22c55e" opacity="0.7"/>
-        <rect x="0" y="18" width="54" height="18" rx="4" fill="#22c55e" opacity="0.8"/>
-        <rect x="6" y="6" width="14" height="10" rx="2" fill="#4ade80" opacity="0.4"/>
-        <rect x="24" y="6" width="14" height="10" rx="2" fill="#4ade80" opacity="0.4"/>
-        <circle cx="12" cy="38" r="5" fill="#e4e4e7"/>
-        <circle cx="42" cy="38" r="5" fill="#e4e4e7"/>
-        <circle cx="12" cy="38" r="2.5" fill="#2e2e36"/>
-        <circle cx="42" cy="38" r="2.5" fill="#2e2e36"/>
+      <g class="vehicle vehicle-3" transform="translate(480,48)">
+        <path d="M4,18 L12,4 L42,4 L50,18 Z" fill="#10b981" opacity="0.6"/>
+        <rect x="0" y="16" width="54" height="16" rx="4" fill="#10b981" opacity="0.7"/>
+        <rect x="6" y="6" width="14" height="10" rx="2" fill="#34d399" opacity="0.35"/>
+        <rect x="24" y="6" width="14" height="10" rx="2" fill="#34d399" opacity="0.35"/>
+        <circle cx="12" cy="34" r="4.5" fill="#cbd5e1"/>
+        <circle cx="42" cy="34" r="4.5" fill="#cbd5e1"/>
+        <circle cx="12" cy="34" r="2" fill="#0f172a"/>
+        <circle cx="42" cy="34" r="2" fill="#0f172a"/>
       </g>
 
       {# Tram #}
-      <g transform="translate(620,38)">
-        <rect x="0" y="0" width="48" height="40" rx="6" fill="#fbbf24" opacity="0.6"/>
-        <rect x="4" y="4" width="16" height="12" rx="2" fill="#fde68a" opacity="0.4"/>
-        <rect x="24" y="4" width="16" height="12" rx="2" fill="#fde68a" opacity="0.4"/>
-        <line x1="24" y1="-10" x2="24" y2="0" stroke="#fbbf24" stroke-width="2" opacity="0.5"/>
-        <circle cx="12" cy="44" r="5" fill="#e4e4e7"/>
-        <circle cx="36" cy="44" r="5" fill="#e4e4e7"/>
-        <circle cx="12" cy="44" r="2.5" fill="#2e2e36"/>
-        <circle cx="36" cy="44" r="2.5" fill="#2e2e36"/>
+      <g class="vehicle vehicle-4" transform="translate(620,36)">
+        <rect x="0" y="0" width="48" height="38" rx="6" fill="#a855f7" opacity="0.55"/>
+        <rect x="4" y="4" width="16" height="11" rx="2" fill="#c084fc" opacity="0.35"/>
+        <rect x="24" y="4" width="16" height="11" rx="2" fill="#c084fc" opacity="0.35"/>
+        <line x1="24" y1="-8" x2="24" y2="0" stroke="#a855f7" stroke-width="2" opacity="0.4"/>
+        <circle cx="12" cy="42" r="4.5" fill="#cbd5e1"/>
+        <circle cx="36" cy="42" r="4.5" fill="#cbd5e1"/>
+        <circle cx="12" cy="42" r="2" fill="#0f172a"/>
+        <circle cx="36" cy="42" r="2" fill="#0f172a"/>
       </g>
 
-      {# Bus stop sign #}
-      <g transform="translate(170,30)">
-        <rect x="4" y="0" width="2" height="55" fill="#a1a1aa" opacity="0.4"/>
-        <rect x="0" y="0" width="10" height="14" rx="2" fill="#3b82f6" opacity="0.5"/>
-      </g>
-
-      {# Route dots #}
-      <circle cx="155" cy="89" r="3" fill="#7c3aed" opacity="0.6"/>
-      <circle cx="240" cy="89" r="3" fill="#7c3aed" opacity="0.6"/>
-      <circle cx="370" cy="89" r="3" fill="#7c3aed" opacity="0.6"/>
-      <circle cx="460" cy="89" r="3" fill="#7c3aed" opacity="0.6"/>
-      <circle cx="600" cy="89" r="3" fill="#7c3aed" opacity="0.6"/>
+      {# Station dots #}
+      <circle cx="155" cy="85" r="2.5" fill="#e2a13f" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="240" cy="85" r="2.5" fill="#e2a13f" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="370" cy="85" r="2.5" fill="#e2a13f" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="1s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="460" cy="85" r="2.5" fill="#e2a13f" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="600" cy="85" r="2.5" fill="#e2a13f" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="2s" repeatCount="indefinite"/>
+      </circle>
     </svg>
-  </div>
+  </header>
 
-  <div class="page">
-    <h1>Drive-to-Transit Planner</h1>
-    <p class="subtitle">Plan a trip by driving to a transit station, then taking transit to your destination.</p>
+  <main class="page">
+    {# ── Branding ── #}
+    <div class="brand anim-in" style="--delay: 0">
+      <h1>DriveOut</h1>
+      <p class="tagline">Drive to a station. Ride to your destination.</p>
+    </div>
 
     {% if errors %}
-      <div class="alert alert-error" role="alert">{{ errors }}</div>
+      <div class="alert alert-error anim-in" role="alert" style="--delay: 1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span>{{ errors }}</span>
+      </div>
     {% endif %}
 
     {# ── Trip form ── #}
-    <div class="card">
-      <h2 class="card-title">Trip details</h2>
-      <form method="post" action="/">
+    <section class="card anim-in" style="--delay: 1">
+      <div class="card-header">
+        <svg class="card-header-icon" width="20" height="20"><use href="#icon-route"/></svg>
+        <h2>Plan your trip</h2>
+      </div>
+      <form method="post" action="/" id="trip-form">
         <div class="form-grid">
-          <div class="field">
-            <label for="start">Start address</label>
-            <div class="input-with-swap">
-              <input type="text" id="start" name="start" placeholder="e.g. 123 Main St, City" value="{{ form.start or '' }}" autocomplete="address-line1">
-              <button type="button" class="swap-btn" id="swap-btn" title="Swap start and destination">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
-                </svg>
-              </button>
+          {# Addresses #}
+          <div class="address-group">
+            <div class="field">
+              <label for="start">
+                <span class="label-dot label-dot--start"></span>
+                Start
+              </label>
+              <div class="input-with-swap">
+                <input type="text" id="start" name="start" placeholder="Where are you leaving from?" value="{{ form.start or '' }}" autocomplete="address-line1">
+                <button type="button" class="swap-btn" id="swap-btn" title="Swap start and destination" aria-label="Swap addresses">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="favorites-row" id="fav-start"></div>
             </div>
-            <div class="favorites-row" id="fav-start"></div>
+            <div class="address-connector" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="field">
+              <label for="dest">
+                <span class="label-dot label-dot--end"></span>
+                Destination
+              </label>
+              <input type="text" id="dest" name="dest" placeholder="Where are you going?" value="{{ form.dest or '' }}" autocomplete="address-line1">
+              <div class="favorites-row" id="fav-dest"></div>
+            </div>
           </div>
-          <div class="field">
-            <label for="dest">Destination address</label>
-            <input type="text" id="dest" name="dest" placeholder="e.g. Central Station" value="{{ form.dest or '' }}" autocomplete="address-line1">
-            <div class="favorites-row" id="fav-dest"></div>
-          </div>
+
+          {# Date & Time #}
           <div class="row-2">
             <div class="field">
-              <label for="departure_date">Depart on date</label>
+              <label for="departure_date">
+                <svg class="label-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Departure date
+              </label>
               <input type="date" id="departure_date" name="departure_date" value="{{ form.departure_date or '' }}">
-              <span class="hint">Leave empty for "leave now"</span>
+              <span class="hint">Leave empty for now</span>
             </div>
             <div class="field">
-              <label for="departure_time">Depart at time</label>
+              <label for="departure_time">
+                <svg class="label-icon" width="14" height="14"><use href="#icon-clock"/></svg>
+                Departure time
+              </label>
               <input type="time" id="departure_time" name="departure_time" value="{{ form.departure_time or '' }}">
             </div>
           </div>
+
+          {# Search mode #}
           <div class="field">
-            <label>Drive to station near</label>
+            <label>Find stations near</label>
             <div class="radio-group">
-              <label class="radio-label">
+              <label class="radio-card">
                 <input type="radio" name="search_mode" value="origin" {{ 'checked' if (form.search_mode or 'origin') == 'origin' }}>
-                <span>Origin</span>
-                <span class="radio-hint">Drive → Station → Transit</span>
+                <div class="radio-card-content">
+                  <span class="radio-card-title">Origin</span>
+                  <span class="radio-card-desc">Drive &rarr; Station &rarr; Transit</span>
+                </div>
               </label>
-              <label class="radio-label">
+              <label class="radio-card">
                 <input type="radio" name="search_mode" value="destination" {{ 'checked' if form.search_mode == 'destination' }}>
-                <span>Destination</span>
-                <span class="radio-hint">Transit → Station → Drive</span>
+                <div class="radio-card-content">
+                  <span class="radio-card-title">Destination</span>
+                  <span class="radio-card-desc">Transit &rarr; Station &rarr; Drive</span>
+                </div>
               </label>
             </div>
           </div>
-          <div class="row-2">
-            <div class="field">
-              <label for="max_drive">Max drive to station (minutes)</label>
-              <input type="number" id="max_drive" name="max_drive" min="1" max="60" step="1" value="{{ form.max_drive or 15 }}" placeholder="15">
-            </div>
-            <div class="field">
-              <label for="threshold">Max wait at station (minutes)</label>
-              <input type="number" id="threshold" name="threshold" min="0" max="30" step="1" value="{{ form.threshold or 5 }}" placeholder="5">
+
+          {# Max drive #}
+          <div class="field">
+            <label for="max_drive">
+              <svg class="label-icon" width="14" height="14"><use href="#icon-driving"/></svg>
+              Max drive to station
+            </label>
+            <div class="range-field">
+              <input type="range" id="max_drive" name="max_drive" min="1" max="60" step="1" value="{{ form.max_drive or 15 }}">
+              <output class="range-value" for="max_drive">{{ form.max_drive or 15 }} min</output>
             </div>
           </div>
         </div>
-        <div style="margin-top: 1.5rem;">
-          <button type="submit" class="btn" id="submit-btn">
-            <span class="btn-text">Plan trip</span>
-            <span class="btn-spinner" hidden></span>
-          </button>
-        </div>
+
+        <button type="submit" class="btn" id="submit-btn">
+          <span class="btn-text">Plan trip</span>
+          <span class="btn-spinner" hidden></span>
+          <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
       </form>
-    </div>
+    </section>
 
     {# ── Results ── #}
     {% if results %}
+      {# Map #}
       {% if map_data %}
-      <div class="card map-card">
-        <h2 class="card-title">Route map</h2>
-        <p class="subtitle" style="margin-bottom: 1rem;">Click a route below to view it on the map</p>
+      <section class="card map-section anim-in" style="--delay: 2">
+        <div class="card-header">
+          <svg class="card-header-icon" width="20" height="20"><use href="#icon-pin"/></svg>
+          <h2>Route map</h2>
+          <span class="card-header-hint">Click a route to preview</span>
+        </div>
         <div id="map" class="map-container"></div>
-      </div>
+      </section>
       {% endif %}
 
-      <div class="card">
-        <div class="results-header">
-          <h2 class="results-title">Top options</h2>
-          <span class="results-count">{{ results|length }} route{{ 's' if results|length != 1 else '' }}</span>
+      {# Route options #}
+      <section class="card anim-in" style="--delay: 3">
+        <div class="card-header">
+          <svg class="card-header-icon" width="20" height="20"><use href="#icon-clock"/></svg>
+          <h2>Routes found</h2>
+          <span class="results-badge">{{ results|length }}</span>
         </div>
-        <ul class="steps-list" style="list-style: none;">
+        <ul class="options-list">
           {% for opt in results %}
-            <li class="option-card" data-option-index="{{ loop.index0 }}" style="cursor: pointer;">
+            <li class="option-card{% if loop.first %} active{% endif %}" data-option-index="{{ loop.index0 }}">
               <div class="option-header">
-                <span class="option-total">Arrive {{ opt.arrival_time }}</span>
-                <span class="option-meta"><span>{{ opt.total_time_min }} min total</span></span>
-                <span class="option-meta">
-                  <span>Station: {{ opt.station }}</span>
+                <div class="option-arrival">
+                  <span class="option-arrival-label">Arrive</span>
+                  <span class="option-arrival-time">{{ opt.arrival_time }}</span>
+                </div>
+                <div class="option-details">
+                  <span class="option-total-time">{{ opt.total_time_min }} min</span>
+                  <span class="option-station">via {{ opt.station }}</span>
                   {% if opt.wait_before_min and opt.wait_before_min > 0 %}
-                    <span>Wait at start: {{ opt.wait_before_min }} min</span>
+                    <span class="option-wait">+{{ opt.wait_before_min|int }} min wait</span>
                   {% endif %}
-                </span>
+                </div>
+                <svg class="option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
               <ul class="steps-list">
                 {% for step in opt.steps %}
@@ -225,9 +289,9 @@
             </li>
           {% endfor %}
         </ul>
-      </div>
+      </section>
     {% endif %}
-  </div>
+  </main>
 
   {# ── Scripts ── #}
   <script src="{{ url_for('static', filename='js/form.js') }}"></script>

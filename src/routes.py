@@ -18,7 +18,6 @@ FORM_DEFAULTS = {
     "start": "",
     "dest": "",
     "max_drive": DEFAULT_MAX_DRIVE_MIN,
-    "threshold": DEFAULT_THRESHOLD_WAIT_MIN,
     "departure_date": "",
     "departure_time": "",
     "search_mode": "origin",
@@ -38,13 +37,11 @@ def _read_form():
     return {key: request.form.get(key, default) for key, default in FORM_DEFAULTS.items()}
 
 
-def _validate_params(saddr, daddr, md, th):
+def _validate_params(saddr, daddr, md):
     if not saddr or not daddr:
         raise ValueError("Please enter both start and destination addresses.")
     if md < 1 or md > 60:
         raise ValueError("Max drive time must be between 1 and 60 minutes.")
-    if th < 0 or th > 30:
-        raise ValueError("Max wait at station must be between 0 and 30 minutes.")
 
 
 def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
@@ -110,9 +107,9 @@ def register_routes(app):
                 saddr = (request.form.get("start") or "").strip()
                 daddr = (request.form.get("dest") or "").strip()
                 md = float(request.form.get("max_drive") or DEFAULT_MAX_DRIVE_MIN)
-                th = float(request.form.get("threshold") or DEFAULT_THRESHOLD_WAIT_MIN)
+                th = DEFAULT_THRESHOLD_WAIT_MIN
                 search_mode = request.form.get("search_mode", "origin")
-                _validate_params(saddr, daddr, md, th)
+                _validate_params(saddr, daddr, md)
 
                 departure = _parse_departure(
                     request.form.get("departure_date"),
