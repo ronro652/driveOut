@@ -14,6 +14,7 @@ from services import (
     build_options_from_dest,
     _rank_score,
     _stamp_step_times,
+    _filter_slow_options,
 )
 
 FORM_DEFAULTS = {
@@ -76,7 +77,7 @@ def _plan_trip(saddr, daddr, md, th, search_mode, base_time):
     if direct:
         results.append(direct)
         results.sort(key=_rank_score)
-        results = results[:MAX_OPTIONS]
+        results = _filter_slow_options(results[:MAX_OPTIONS])
 
     if not results:
         raise ValueError("No routes found for this trip.")
