@@ -1,12 +1,21 @@
 import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import googlemaps
 
 from config import (
     API_KEY, STATION_SEARCH_RADIUS_M, MAX_GEOCODE_CACHE,
-    WALK_THRESHOLD_MIN, LEG_PENALTY, MIN_OPTIONS, SLOW_OPTION_FACTOR, get_logger,
+    WALK_THRESHOLD_MIN, LEG_PENALTY, MIN_OPTIONS, SLOW_OPTION_FACTOR, LOCAL_TIMEZONE, get_logger,
 )
+
+_tz = ZoneInfo(LOCAL_TIMEZONE)
+
+
+def now_local():
+    """Return the current time in the configured local timezone."""
+    return datetime.now(tz=_tz)
+
 
 log = get_logger("services")
 
@@ -70,7 +79,7 @@ def filter_by_drive_time(origin_coords, stations, max_drive_min, departure_time=
     if not stations:
         return []
     max_drive_sec = max_drive_min * 60
-    dep = departure_time or datetime.now()
+    dep = departure_time or now_local()
     destinations = [s["location"] for s in stations]
     log.info("API  distance_matrix: %d stations, max_drive=%d min", len(stations), max_drive_min)
     matrix = gmaps.distance_matrix(
@@ -102,7 +111,7 @@ def filter_by_drive_time(origin_coords, stations, max_drive_min, departure_time=
 def get_direct_drive(origin_coords, dest_coords, max_drive_min, departure_time=None):
     """Return a drive-only option if origin→dest is within max_drive_min, else None."""
     log.info("API  direct_drive check: max=%d min", max_drive_min)
-    dep = departure_time or datetime.now()
+    dep = departure_time or now_local()
     matrix = gmaps.distance_matrix(
         origins=[origin_coords],
         destinations=[dest_coords],
@@ -225,7 +234,7 @@ def _parse_transit_steps(leg):
 
 
 def get_transit_options(origin_coords, dest_coords, departure_time=None):
-    start_time = departure_time or datetime.now()
+    start_time = departure_time or now_local()
     log.info("API  directions(transit): %s -> %s, depart=%s", origin_coords, dest_coords, start_time)
     routes = gmaps.directions(
         origin=origin_coords,
@@ -254,7 +263,7 @@ def _resolve_waits(transit_steps, cursor):
         sc = _clean_step(s)
         wait_min = 0.0
         if sc["travel_mode"] == "TRANSIT" and s.get("departure_time_epoch"):
-            dep = datetime.fromtimestamp(s["departure_time_epoch"])
+            dep = datetime.fromtimestamp(s["departure_time_epoch"], tz=_tz)
             wait_min = max(round((dep - cursor).total_seconds() / 60, 1), 0.0)
             cursor = dep + timedelta(minutes=sc["duration_min"])
         else:
@@ -328,7 +337,7 @@ def _filter_slow_options(options):
 def build_options_from_origin(stations, start_coords, dest_coords, max_options=5, threshold_wait=5, base_time=None):
     """Drive (or walk) from origin to station, then transit to destination."""
     log.info("build_options_from_origin: %d stations, max_options=%d", len(stations), max_options)
-    base = base_time or datetime.now()
+    base = base_time or now_local()
     all_opts = []
     for st in stations:
         log.debug("Querying station: %s (%.1f min drive)", st["name"], st["drive_time_min"])
@@ -341,7 +350,7 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
             first = leg["steps"][0]
             station_wait = 0.0
             if first["travel_mode"] == "TRANSIT" and first.get("departure_time_epoch"):
-                dep_time = datetime.fromtimestamp(first["departure_time_epoch"])
+                dep_time = datetime.fromtimestamp(first["departure_time_epoch"], tz=_tz)
                 station_wait = max(round((dep_time - arrival).total_seconds() / 60, 1), 0.0)
 
             if station_wait > threshold_wait:
@@ -382,7 +391,7 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
 def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, base_time=None):
     """Transit from origin to station near destination, then drive (or walk) to destination."""
     log.info("build_options_from_dest: %d stations, max_options=%d", len(stations), max_options)
-    base = base_time or datetime.now()
+    base = base_time or now_local()
     all_opts = []
     for st in stations:
         log.debug("Querying station: %s (%.1f min drive)", st["name"], st["drive_time_min"])

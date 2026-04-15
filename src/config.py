@@ -8,6 +8,8 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 
+LOCAL_TIMEZONE = "Asia/Jerusalem"
+
 DEFAULT_MAX_DRIVE_MIN = 15
 DEFAULT_THRESHOLD_WAIT_MIN = 5
 STATION_SEARCH_RADIUS_M = 15_000

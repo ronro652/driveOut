@@ -16,6 +16,7 @@ from services import (
     _rank_score,
     _stamp_step_times,
     _filter_slow_options,
+    now_local,
 )
 
 FORM_DEFAULTS = {
@@ -32,7 +33,9 @@ def _parse_departure(date_str, time_str):
     if not date_str or not time_str:
         return None
     try:
-        return datetime.strptime(f"{date_str.strip()} {time_str.strip()}", "%Y-%m-%d %H:%M")
+        from services import _tz
+        naive = datetime.strptime(f"{date_str.strip()} {time_str.strip()}", "%Y-%m-%d %H:%M")
+        return naive.replace(tzinfo=_tz)
     except ValueError:
         return None
 
@@ -122,9 +125,9 @@ def register_routes(app):
                     request.form.get("departure_date"),
                     request.form.get("departure_time"),
                 )
-                base_time = departure or datetime.now()
+                base_time = departure or now_local()
                 results, map_data = _plan_trip(saddr, daddr, md, th, search_mode, base_time)
-                base_time_iso = base_time.isoformat()
+                base_time_iso = base_time.replace(microsecond=0).isoformat()
             except ValueError as e:
                 log.warning("Validation error: %s", e)
                 error = str(e)
