@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 
 import googlemaps
 
-from config import API_KEY, STATION_SEARCH_RADIUS_M, MAX_GEOCODE_CACHE, WALK_THRESHOLD_MIN, LEG_PENALTY, get_logger
+from config import (
+    API_KEY, STATION_SEARCH_RADIUS_M, MAX_GEOCODE_CACHE,
+    WALK_THRESHOLD_MIN, LEG_PENALTY, MIN_OPTIONS, SLOW_OPTION_FACTOR, get_logger,
+)
 
 log = get_logger("services")
 
@@ -300,6 +303,19 @@ def _dedup_by_closer_station(options):
     return list(best.values())
 
 
+def _filter_slow_options(options):
+    """Drop options much slower than the fastest, but always keep at least MIN_OPTIONS."""
+    if len(options) <= MIN_OPTIONS:
+        return options
+    fastest_arrival = min(opt["arrival_min"] for opt in options)
+    threshold = fastest_arrival * SLOW_OPTION_FACTOR
+    result = []
+    for i, opt in enumerate(options):
+        if i < MIN_OPTIONS or opt["arrival_min"] <= threshold:
+            result.append(opt)
+    return result
+
+
 def build_options_from_origin(stations, start_coords, dest_coords, max_options=5, threshold_wait=5, base_time=None):
     """Drive (or walk) from origin to station, then transit to destination."""
     log.info("build_options_from_origin: %d stations, max_options=%d", len(stations), max_options)
@@ -349,7 +365,9 @@ def build_options_from_origin(stations, start_coords, dest_coords, max_options=5
     all_opts = _dedup_by_closer_station(all_opts)
     log.info("After dedup: %d options", len(all_opts))
     all_opts.sort(key=_rank_score)
-    return all_opts[:max_options]
+    all_opts = _filter_slow_options(all_opts[:max_options])
+    log.info("After slow filter: %d options", len(all_opts))
+    return all_opts
 
 
 def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, base_time=None):
@@ -375,4 +393,6 @@ def build_options_from_dest(stations, start_coords, dest_coords, max_options=5, 
     all_opts = _dedup_by_closer_station(all_opts)
     log.info("After dedup: %d options", len(all_opts))
     all_opts.sort(key=_rank_score)
-    return all_opts[:max_options]
+    all_opts = _filter_slow_options(all_opts[:max_options])
+    log.info("After slow filter: %d options", len(all_opts))
+    return all_opts
