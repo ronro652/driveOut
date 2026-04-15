@@ -13,6 +13,42 @@
     });
   }
 
+  // ── GPS "Use my location" ──
+  var gpsBtn = document.getElementById('gps-btn');
+  if (gpsBtn) {
+    gpsBtn.addEventListener('click', function() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+      gpsBtn.classList.add('loading');
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          fetch('/reverse-geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.address) {
+              document.getElementById('start').value = data.address;
+            } else {
+              alert(data.error || 'Could not determine your address.');
+            }
+          })
+          .catch(function() { alert('Failed to get address from location.'); })
+          .finally(function() { gpsBtn.classList.remove('loading'); });
+        },
+        function(err) {
+          gpsBtn.classList.remove('loading');
+          alert('Location access denied. Please allow location access and try again.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
   // ── Range slider live output ──
   var range = document.getElementById('max_drive');
   if (range) {

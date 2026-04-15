@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 
-from flask import render_template, request
+from flask import jsonify, render_template, request
 
 from config import API_KEY, DEFAULT_MAX_DRIVE_MIN, DEFAULT_THRESHOLD_WAIT_MIN, MAX_OPTIONS, get_logger
 
 log = get_logger("routes")
 from services import (
     geocode_address,
+    reverse_geocode_coords,
     find_transit_stations,
     filter_by_drive_time,
     get_direct_drive,
@@ -106,6 +107,7 @@ def register_routes(app):
     def index():
         results = None
         error = None
+        base_time_iso = None
 
         if request.method == "POST":
             try:
@@ -122,6 +124,7 @@ def register_routes(app):
                 )
                 base_time = departure or datetime.now()
                 results, map_data = _plan_trip(saddr, daddr, md, th, search_mode, base_time)
+                base_time_iso = base_time.isoformat()
             except ValueError as e:
                 log.warning("Validation error: %s", e)
                 error = str(e)
@@ -135,4 +138,18 @@ def register_routes(app):
 
         form = _read_form() if request.method == "POST" else FORM_DEFAULTS.copy()
 
-        return render_template("index.html", results=results, errors=error, form=form, map_data=map_data)
+        return render_template("index.html", results=results, errors=error, form=form, map_data=map_data,
+                               base_time=base_time_iso)
+
+    @app.route("/reverse-geocode", methods=["POST"])
+    def reverse_geocode():
+        data = request.get_json(silent=True) or {}
+        lat = data.get("lat")
+        lng = data.get("lng")
+        if lat is None or lng is None:
+            return jsonify({"error": "lat and lng are required"}), 400
+        try:
+            address = reverse_geocode_coords(float(lat), float(lng))
+            return jsonify({"address": address})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

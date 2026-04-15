@@ -48,6 +48,12 @@
     <symbol id="icon-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>
     </symbol>
+    <symbol id="icon-navigate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+    </symbol>
+    <symbol id="icon-gps" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+    </symbol>
   </svg>
 
   {# ── Grain overlay ── #}
@@ -160,6 +166,9 @@
                 Start
               </label>
               <div class="input-with-swap">
+                <button type="button" class="gps-btn" id="gps-btn" title="Use my location" aria-label="Use my location">
+                  <svg width="16" height="16"><use href="#icon-gps"/></svg>
+                </button>
                 <input type="text" id="start" name="start" placeholder="Where are you leaving from?" value="{{ form.start or '' }}" autocomplete="address-line1">
                 <button type="button" class="swap-btn" id="swap-btn" title="Swap start and destination" aria-label="Swap addresses">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -263,10 +272,14 @@
           <svg class="card-header-icon" width="20" height="20"><use href="#icon-clock"/></svg>
           <h2>Routes found</h2>
           <span class="results-badge">{{ results|length }}</span>
+          <button type="button" class="end-trip-btn" id="end-trip-btn" style="display:none">
+            End Trip
+          </button>
         </div>
         <ul class="options-list">
           {% for opt in results %}
-            <li class="option-card{% if loop.first %} active{% endif %}" data-option-index="{{ loop.index0 }}">
+            <li class="option-card{% if loop.first %} active{% endif %}" data-option-index="{{ loop.index0 }}"
+                data-depart-time="{{ opt.steps[0].start_time }}">
               <div class="option-header">
                 <div class="option-arrival">
                   <span class="option-arrival-label">Arrive</span>
@@ -278,6 +291,7 @@
                   {% if opt.wait_before_min and opt.wait_before_min > 0 %}
                     <span class="option-wait">+{{ opt.wait_before_min|int }} min wait</span>
                   {% endif %}
+                  <span class="option-countdown" data-countdown></span>
                 </div>
                 <svg class="option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
@@ -286,6 +300,10 @@
                   {% include "partials/step.html" %}
                 {% endfor %}
               </ul>
+              <button type="button" class="start-trip-btn">
+                <svg width="16" height="16"><use href="#icon-navigate"/></svg>
+                Start Trip
+              </button>
             </li>
           {% endfor %}
         </ul>
@@ -299,6 +317,10 @@
   {% if map_data %}
   <script type="application/json" id="map-data">{{ map_data | tojson }}</script>
   <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+  {% endif %}
+  {% if results and base_time %}
+  <script type="application/json" id="trip-meta">{{ {"base_time": base_time} | tojson }}</script>
+  <script src="{{ url_for('static', filename='js/trip.js') }}"></script>
   {% endif %}
   <script>
     if ('serviceWorker' in navigator) {

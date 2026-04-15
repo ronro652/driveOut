@@ -41,6 +41,14 @@
           <span class="wait">&middot; wait {{ step.wait_min }} min</span>
         {% endif %}
       </div>
+      {% if step.travel_mode in ('DRIVING', 'WALKING') and step.start_location and step.end_location %}
+        <a class="navigate-btn"
+           href="https://www.google.com/maps/dir/?api=1&origin={{ step.start_location.lat }},{{ step.start_location.lng }}&destination={{ step.end_location.lat }},{{ step.end_location.lng }}&travelmode={{ 'walking' if step.travel_mode == 'WALKING' else 'driving' }}"
+           target="_blank" rel="noopener" title="Navigate with Google Maps">
+          <svg width="14" height="14"><use href="#icon-navigate"/></svg>
+          Navigate
+        </a>
+      {% endif %}
     </div>
   {% endif %}
 </li>

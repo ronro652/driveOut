@@ -24,6 +24,15 @@ def _normalize_address(addr):
     return " ".join((addr or "").strip().split()).lower()
 
 
+def reverse_geocode_coords(lat, lng):
+    """Convert lat/lng to a human-readable address string."""
+    log.info("API  reverse_geocode: (%s, %s)", lat, lng)
+    results = gmaps.reverse_geocode((lat, lng))
+    if not results:
+        raise ValueError("Could not determine address for this location.")
+    return results[0].get("formatted_address", "")
+
+
 def geocode_address(address):
     key = _normalize_address(address)
     if not key:
