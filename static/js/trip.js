@@ -124,6 +124,52 @@
     }
   }
 
+  // ── Route deviation detection ──
+  var OFF_ROUTE_THRESHOLD = 500; // meters
+  var offRouteShown = false;
+
+  function distToSegment(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay;
+    var lenSq = dx * dx + dy * dy;
+    var t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return haversineM(px, py, ax + t * dx, ay + t * dy);
+  }
+
+  function checkDeviation() {
+    if (!tripActive || userLat === null || stepWaypoints.length === 0) return;
+
+    var wp = stepWaypoints[currentStepIndex];
+    if (!wp || wp.endLat === null) return;
+
+    // Get start of current step (end of previous, or route origin)
+    var startLat, startLng;
+    if (currentStepIndex > 0 && stepWaypoints[currentStepIndex - 1].endLat !== null) {
+      startLat = stepWaypoints[currentStepIndex - 1].endLat;
+      startLng = stepWaypoints[currentStepIndex - 1].endLng;
+    } else {
+      // Use the step's own endpoint — if no prior reference, just check distance to endpoint
+      startLat = wp.endLat;
+      startLng = wp.endLng;
+    }
+
+    var dist = distToSegment(userLat, userLng, startLat, startLng, wp.endLat, wp.endLng);
+
+    var warningEl = document.getElementById('off-route-warning');
+    if (!warningEl) return;
+
+    if (dist > OFF_ROUTE_THRESHOLD) {
+      if (!offRouteShown) {
+        warningEl.style.display = '';
+        offRouteShown = true;
+      }
+    } else {
+      if (offRouteShown) {
+        warningEl.style.display = 'none';
+        offRouteShown = false;
+      }
+    }
+  }
+
   function advanceStep() {
     currentStepIndex++;
     // Skip past steps without location data (WAITING steps)
@@ -134,6 +180,10 @@
     if (currentStepIndex >= stepWaypoints.length) {
       currentStepIndex = stepWaypoints.length - 1;
     }
+    // Clear off-route warning on advance
+    offRouteShown = false;
+    var warningEl = document.getElementById('off-route-warning');
+    if (warningEl) warningEl.style.display = 'none';
     highlightCurrentStep();
 
     // Scroll current step into view
@@ -174,6 +224,7 @@
           window.DriveOutMap.updateUserLocation(userLat, userLng, pos.coords.accuracy);
         }
         checkProximity();
+        checkDeviation();
       },
       function(err) {
         console.warn('Location tracking error:', err.message);
@@ -259,10 +310,13 @@
     var progressEl = document.getElementById('trip-progress');
     if (progressEl) progressEl.style.display = 'none';
 
-    // Remove step highlights
+    // Remove step highlights and off-route warning
     document.querySelectorAll('.step-current, .step-completed').forEach(function(el) {
       el.classList.remove('step-current', 'step-completed');
     });
+    offRouteShown = false;
+    var warningEl = document.getElementById('off-route-warning');
+    if (warningEl) warningEl.style.display = 'none';
   }
 
   // Attach start-trip buttons
@@ -297,6 +351,41 @@
           window.DriveOutMap.updateUserLocation(userLat, userLng, 50);
         }
       }
+    });
+  }
+
+  // Re-plan from current location
+  var replanBtn = document.getElementById('replan-btn');
+  if (replanBtn) {
+    replanBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (userLat === null) return;
+
+      replanBtn.textContent = 'Re-planning\u2026';
+      replanBtn.disabled = true;
+
+      fetch('/reverse-geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: userLat, lng: userLng })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.address) {
+          exitTripMode();
+          var startInput = document.getElementById('start');
+          if (startInput) startInput.value = data.address;
+          var form = document.getElementById('trip-form');
+          if (form) form.submit();
+        } else {
+          replanBtn.textContent = 'Re-plan trip';
+          replanBtn.disabled = false;
+        }
+      })
+      .catch(function() {
+        replanBtn.textContent = 'Re-plan trip';
+        replanBtn.disabled = false;
+      });
     });
   }
 
