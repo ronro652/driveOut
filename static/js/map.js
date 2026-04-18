@@ -15,6 +15,9 @@
   var gmap, dirService;
   var activeRenderers = [];
   var activeMarkers = [];
+  var userMarker = null;
+  var userAccuracyCircle = null;
+  var autoCenter = true;
 
   function clearMap() {
     activeRenderers.forEach(function(r) { r.setMap(null); });
@@ -167,6 +170,66 @@
     showOption(0);
     observeActiveCard();
   }
+
+  // ── User location (blue dot) ──
+  function updateUserLocation(lat, lng, accuracy) {
+    if (!gmap) return;
+    var pos = new google.maps.LatLng(lat, lng);
+
+    if (!userMarker) {
+      userMarker = new google.maps.Marker({
+        position: pos,
+        map: gmap,
+        title: 'Your location',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#4285F4',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2.5
+        },
+        zIndex: 999
+      });
+      userAccuracyCircle = new google.maps.Circle({
+        map: gmap,
+        center: pos,
+        radius: accuracy || 50,
+        fillColor: '#4285F4',
+        fillOpacity: 0.1,
+        strokeColor: '#4285F4',
+        strokeOpacity: 0.3,
+        strokeWeight: 1,
+        clickable: false
+      });
+    } else {
+      userMarker.setPosition(pos);
+      userAccuracyCircle.setCenter(pos);
+      userAccuracyCircle.setRadius(accuracy || 50);
+    }
+
+    if (autoCenter) {
+      gmap.panTo(pos);
+    }
+  }
+
+  function removeUserLocation() {
+    if (userMarker) { userMarker.setMap(null); userMarker = null; }
+    if (userAccuracyCircle) { userAccuracyCircle.setMap(null); userAccuracyCircle = null; }
+  }
+
+  function setAutoCenter(enabled) {
+    autoCenter = enabled;
+  }
+
+  // Public API for other scripts (trip.js)
+  window.DriveOutMap = {
+    updateUserLocation: updateUserLocation,
+    removeUserLocation: removeUserLocation,
+    setAutoCenter: setAutoCenter,
+    showOption: showOption,
+    getMap: function() { return gmap; }
+  };
 
   var s = document.createElement('script');
   s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&callback=window.initDriveOutMap';

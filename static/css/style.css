@@ -888,6 +888,35 @@ h1 {
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* ── Center-lock button ── */
+
+.center-lock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.center-lock-btn.active {
+  color: var(--blue);
+  border-color: var(--blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.center-lock-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
 /* ── Trip mode ── */
 
 .trip-mode .brand,

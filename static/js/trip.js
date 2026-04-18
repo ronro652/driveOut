@@ -41,6 +41,38 @@
   // ── Start Trip mode ──
   var tripActive = false;
   var tripOptionIndex = null;
+  var watchId = null;
+  var userLat = null;
+  var userLng = null;
+
+  function startLocationTracking() {
+    if (!navigator.geolocation || watchId !== null) return;
+    watchId = navigator.geolocation.watchPosition(
+      function(pos) {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        if (window.DriveOutMap) {
+          window.DriveOutMap.updateUserLocation(userLat, userLng, pos.coords.accuracy);
+        }
+      },
+      function(err) {
+        console.warn('Location tracking error:', err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  function stopLocationTracking() {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    userLat = null;
+    userLng = null;
+    if (window.DriveOutMap) {
+      window.DriveOutMap.removeUserLocation();
+    }
+  }
 
   function enterTripMode(optionIndex) {
     var card = document.querySelector('.option-card[data-option-index="' + optionIndex + '"]');
@@ -52,7 +84,6 @@
 
     // Hide everything except the active option
     document.querySelector('.card:has(#trip-form)').style.display = 'none';
-    var mapSection = document.querySelector('.map-section');
     document.querySelectorAll('.option-card').forEach(function(c) {
       if (c.getAttribute('data-option-index') !== String(optionIndex)) {
         c.style.display = 'none';
@@ -65,9 +96,14 @@
     // Make sure the active card is expanded
     card.classList.add('active');
 
-    // Show end-trip button
+    // Show end-trip button and center-lock button
     var endBtn = document.getElementById('end-trip-btn');
     if (endBtn) endBtn.style.display = '';
+    var centerBtn = document.getElementById('center-lock-btn');
+    if (centerBtn) centerBtn.style.display = '';
+
+    // Start live location tracking
+    startLocationTracking();
   }
 
   function exitTripMode() {
@@ -83,6 +119,11 @@
 
     var endBtn = document.getElementById('end-trip-btn');
     if (endBtn) endBtn.style.display = 'none';
+    var centerBtn = document.getElementById('center-lock-btn');
+    if (centerBtn) centerBtn.style.display = 'none';
+
+    // Stop live location tracking
+    stopLocationTracking();
   }
 
   // Attach start-trip buttons
@@ -101,6 +142,22 @@
     endBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       exitTripMode();
+    });
+  }
+
+  // Center-lock toggle
+  var centerBtn = document.getElementById('center-lock-btn');
+  if (centerBtn) {
+    centerBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isActive = centerBtn.classList.toggle('active');
+      if (window.DriveOutMap) {
+        window.DriveOutMap.setAutoCenter(isActive);
+        // If re-enabling, immediately pan to user
+        if (isActive && userLat !== null) {
+          window.DriveOutMap.updateUserLocation(userLat, userLng, 50);
+        }
+      }
     });
   }
 
