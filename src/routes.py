@@ -18,6 +18,7 @@ from services import (
     _filter_slow_options,
     now_local,
 )
+from realtime import get_realtime_for_steps
 
 FORM_DEFAULTS = {
     "start": "",
@@ -156,3 +157,35 @@ def register_routes(app):
             return jsonify({"address": address})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/realtime", methods=["POST"])
+    def realtime():
+        """Query real-time transit delay data for given stops.
+
+        Expects JSON: {
+            "base_time": "ISO datetime string",
+            "steps": [
+                {"index": 0, "line_name": "480", "departure_lat": 32.0, "departure_lng": 34.8, "scheduled_minutes": 15},
+                ...
+            ]
+        }
+        Returns: {"delays": {step_index: {line, scheduled, actual, delay_min, status}}}
+        """
+        data = request.get_json(silent=True) or {}
+        base_time_str = data.get("base_time")
+        steps = data.get("steps", [])
+
+        if not base_time_str or not steps:
+            return jsonify({"delays": {}})
+
+        try:
+            from services import _tz
+            base_time = datetime.fromisoformat(base_time_str)
+            if base_time.tzinfo is None:
+                base_time = base_time.replace(tzinfo=_tz)
+        except (ValueError, TypeError):
+            return jsonify({"delays": {}})
+
+        delays = get_realtime_for_steps(steps, base_time)
+        # Convert int keys to strings for JSON
+        return jsonify({"delays": {str(k): v for k, v in delays.items()}})

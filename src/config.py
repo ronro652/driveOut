@@ -20,6 +20,11 @@ SLOW_OPTION_FACTOR = 1.5   # options > 1.5× the fastest arrival are "much slowe
 WALK_THRESHOLD_MIN = 3
 LEG_PENALTY = 0.15
 
+# --------------- Open Bus Stride API ---------------
+STRIDE_API_BASE = "https://open-bus-stride-api.hasadna.org.il"
+STRIDE_API_TIMEOUT = 15  # seconds — the API can be slow
+STRIDE_POLL_INTERVAL = 60  # seconds between polling in trip mode
+
 # --------------- Logging ---------------
 LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
