@@ -84,7 +84,6 @@ def get_stop_arrivals(stop_lat, stop_lng, line_name, scheduled_time):
 def _match_best(records, line_name, scheduled_time):
     """Pick the most relevant record from Stride results and compute delay."""
     for rec in records:
-        gtfs_ride_start = rec.get("gtfs_ride__start_time")
         actual_arrival = rec.get("actual_arrival_time")
         planned_arrival = rec.get("planned_arrival_time")
 
