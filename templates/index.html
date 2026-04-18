@@ -279,6 +279,15 @@
             End Trip
           </button>
         </div>
+        <div class="trip-progress" id="trip-progress" style="display:none">
+          <div class="trip-progress-info">
+            <span class="trip-progress-distance" id="trip-progress-distance"></span>
+            <span class="trip-progress-eta" id="trip-progress-eta"></span>
+          </div>
+          <div class="trip-progress-bar">
+            <div class="trip-progress-fill" id="trip-progress-fill"></div>
+          </div>
+        </div>
         <ul class="options-list">
           {% for opt in results %}
             <li class="option-card{% if loop.first %} active{% endif %}" data-option-index="{{ loop.index0 }}"

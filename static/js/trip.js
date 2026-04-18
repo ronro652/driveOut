@@ -38,12 +38,131 @@
   updateCountdowns();
   setInterval(updateCountdowns, 15000);
 
+  // ── Haversine distance (meters) ──
+  function haversineM(lat1, lng1, lat2, lng2) {
+    var R = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // ── Start Trip mode ──
   var tripActive = false;
   var tripOptionIndex = null;
   var watchId = null;
   var userLat = null;
   var userLng = null;
+  var currentStepIndex = 0;
+  var stepWaypoints = [];
+  var WAYPOINT_RADIUS = 200; // meters
+
+  function buildStepWaypoints() {
+    stepWaypoints = [];
+    var card = document.querySelector('.option-card[data-option-index="' + tripOptionIndex + '"]');
+    if (!card) return;
+    card.querySelectorAll('.step[data-step-index]').forEach(function(el) {
+      var lat = parseFloat(el.getAttribute('data-end-lat'));
+      var lng = parseFloat(el.getAttribute('data-end-lng'));
+      stepWaypoints.push({
+        el: el,
+        endLat: isNaN(lat) ? null : lat,
+        endLng: isNaN(lng) ? null : lng
+      });
+    });
+  }
+
+  function highlightCurrentStep() {
+    stepWaypoints.forEach(function(wp, i) {
+      wp.el.classList.remove('step-current', 'step-completed');
+      if (i < currentStepIndex) {
+        wp.el.classList.add('step-completed');
+      } else if (i === currentStepIndex) {
+        wp.el.classList.add('step-current');
+      }
+    });
+  }
+
+  function updateProgressUI(distM) {
+    var progressEl = document.getElementById('trip-progress');
+    var distEl = document.getElementById('trip-progress-distance');
+    var etaEl = document.getElementById('trip-progress-eta');
+    var fillEl = document.getElementById('trip-progress-fill');
+    if (!progressEl) return;
+
+    if (!tripActive || stepWaypoints.length === 0) {
+      progressEl.style.display = 'none';
+      return;
+    }
+
+    progressEl.style.display = '';
+
+    // Distance to next waypoint
+    if (distEl) {
+      if (distM !== null) {
+        distEl.textContent = distM < 1000
+          ? Math.round(distM) + ' m to next'
+          : (distM / 1000).toFixed(1) + ' km to next';
+      } else {
+        distEl.textContent = 'Waiting for location\u2026';
+      }
+    }
+
+    // Step progress
+    if (etaEl) {
+      etaEl.textContent = 'Step ' + (currentStepIndex + 1) + ' / ' + stepWaypoints.length;
+    }
+
+    // Progress bar
+    if (fillEl) {
+      var pct = stepWaypoints.length > 0
+        ? Math.round((currentStepIndex / stepWaypoints.length) * 100)
+        : 0;
+      fillEl.style.width = pct + '%';
+    }
+  }
+
+  function advanceStep() {
+    currentStepIndex++;
+    // Skip past steps without location data (WAITING steps)
+    while (currentStepIndex < stepWaypoints.length &&
+           stepWaypoints[currentStepIndex].endLat === null) {
+      currentStepIndex++;
+    }
+    if (currentStepIndex >= stepWaypoints.length) {
+      currentStepIndex = stepWaypoints.length - 1;
+    }
+    highlightCurrentStep();
+
+    // Scroll current step into view
+    var nextWp = stepWaypoints[currentStepIndex];
+    if (nextWp && nextWp.el) {
+      nextWp.el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function checkProximity() {
+    if (!tripActive || userLat === null || stepWaypoints.length === 0) return;
+
+    var wp = stepWaypoints[currentStepIndex];
+    if (!wp || wp.endLat === null) {
+      updateProgressUI(null);
+      return;
+    }
+
+    var dist = haversineM(userLat, userLng, wp.endLat, wp.endLng);
+    updateProgressUI(dist);
+
+    if (dist <= WAYPOINT_RADIUS) {
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+      advanceStep();
+      updateProgressUI(null);
+    }
+  }
 
   function startLocationTracking() {
     if (!navigator.geolocation || watchId !== null) return;
@@ -54,6 +173,7 @@
         if (window.DriveOutMap) {
           window.DriveOutMap.updateUserLocation(userLat, userLng, pos.coords.accuracy);
         }
+        checkProximity();
       },
       function(err) {
         console.warn('Location tracking error:', err.message);
@@ -102,6 +222,16 @@
     var centerBtn = document.getElementById('center-lock-btn');
     if (centerBtn) centerBtn.style.display = '';
 
+    // Initialize step tracking (skip leading WAITING steps)
+    currentStepIndex = 0;
+    buildStepWaypoints();
+    while (currentStepIndex < stepWaypoints.length &&
+           stepWaypoints[currentStepIndex].endLat === null) {
+      currentStepIndex++;
+    }
+    highlightCurrentStep();
+    updateProgressUI(null);
+
     // Start live location tracking
     startLocationTracking();
   }
@@ -122,8 +252,17 @@
     var centerBtn = document.getElementById('center-lock-btn');
     if (centerBtn) centerBtn.style.display = 'none';
 
-    // Stop live location tracking
+    // Stop live location tracking and reset progress
     stopLocationTracking();
+    currentStepIndex = 0;
+    stepWaypoints = [];
+    var progressEl = document.getElementById('trip-progress');
+    if (progressEl) progressEl.style.display = 'none';
+
+    // Remove step highlights
+    document.querySelectorAll('.step-current, .step-completed').forEach(function(el) {
+      el.classList.remove('step-current', 'step-completed');
+    });
   }
 
   // Attach start-trip buttons

@@ -15,7 +15,8 @@
   {% set icon_id = step.travel_mode|lower %}
 {% endif %}
 
-<li class="step {{ step.travel_mode|lower }}">
+<li class="step {{ step.travel_mode|lower }}" data-step-index="{{ loop.index0 }}"
+    {% if step.end_location %}data-end-lat="{{ step.end_location.lat }}" data-end-lng="{{ step.end_location.lng }}"{% endif %}>
   <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
     <svg class="step-icon"><use href="#icon-{{ icon_id }}"/></svg>
   </span>

@@ -928,6 +928,66 @@ h1 {
 
 .trip-mode .option-card.active .start-trip-btn { display: none; }
 
+/* ── Trip progress bar ── */
+
+.trip-progress {
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.trip-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.trip-progress-distance {
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.trip-progress-eta {
+  color: var(--text-muted);
+}
+
+.trip-progress-bar {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.trip-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+/* ── Active step highlight in trip mode ── */
+
+.trip-mode .step.step-completed {
+  opacity: 0.4;
+}
+
+.trip-mode .step.step-current {
+  background: rgba(66, 133, 244, 0.08);
+  border-radius: var(--radius-xs);
+  margin: 0 -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.trip-mode .step.step-current .step-icon-wrap {
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.25);
+}
+
 /* Steps (collapsed by default, shown when active) */
 .option-card .steps-list {
   max-height: 0;
