@@ -1184,6 +1184,64 @@ h1 {
   margin: 0 0.25rem;
 }
 
+/* ── Delay badge ── */
+
+.delay-badge {
+  display: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xs);
+  margin-left: 0.35rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.delay-badge.on-time {
+  display: inline;
+  color: var(--green);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.delay-badge.late {
+  display: inline;
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.delay-badge.early {
+  display: inline;
+  color: var(--blue);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.delay-badge.loading {
+  display: inline;
+  color: var(--text-dim);
+  background: rgba(100, 116, 139, 0.1);
+}
+
+/* ── Delay alert banner ── */
+
+.delay-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  margin-bottom: 0.65rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--amber);
+  font-size: 0.85rem;
+  font-weight: 500;
+  animation: offRouteSlide 0.3s ease;
+}
+
+.delay-alert svg {
+  flex-shrink: 0;
+}
+
 /* ── Navigate button ── */
 
 .navigate-btn {

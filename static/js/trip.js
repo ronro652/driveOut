@@ -285,6 +285,13 @@
 
     // Start live location tracking
     startLocationTracking();
+
+    // Start real-time transit polling
+    if (window.DriveOutRealtime) {
+      window.DriveOutRealtime.setLoadingBadges(card);
+      window.DriveOutRealtime.fetchDelays(card);
+      window.DriveOutRealtime.startPolling(card);
+    }
   }
 
   function exitTripMode() {
@@ -317,6 +324,11 @@
     offRouteShown = false;
     var warningEl = document.getElementById('off-route-warning');
     if (warningEl) warningEl.style.display = 'none';
+
+    // Stop real-time polling
+    if (window.DriveOutRealtime) {
+      window.DriveOutRealtime.stopPolling();
+    }
   }
 
   // Attach start-trip buttons

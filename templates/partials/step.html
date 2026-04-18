@@ -16,7 +16,9 @@
 {% endif %}
 
 <li class="step {{ step.travel_mode|lower }}" data-step-index="{{ loop.index0 }}"
-    {% if step.end_location %}data-end-lat="{{ step.end_location.lat }}" data-end-lng="{{ step.end_location.lng }}"{% endif %}>
+    {% if step.end_location %}data-end-lat="{{ step.end_location.lat }}" data-end-lng="{{ step.end_location.lng }}"{% endif %}
+    {% if step.travel_mode == 'TRANSIT' and step.line_name %}data-transit-line="{{ step.line_name }}"{% endif %}
+    {% if step.travel_mode == 'TRANSIT' and step.start_location %}data-departure-lat="{{ step.start_location.lat }}" data-departure-lng="{{ step.start_location.lng }}"{% endif %}>
   <span class="step-icon-wrap {{ step.travel_mode|lower }}" aria-hidden="true">
     <svg class="step-icon"><use href="#icon-{{ icon_id }}"/></svg>
   </span>
@@ -31,7 +33,10 @@
           <span class="step-detail wait" style="margin: 0;">wait {{ step.wait_min }} min</span>
         {% endif %}
       </div>
-      <div class="step-stops">{{ step.departure_stop }} <span class="stop-arrow">&rarr;</span> {{ step.arrival_stop }}</div>
+      <div class="step-stops">
+        {{ step.departure_stop }} <span class="stop-arrow">&rarr;</span> {{ step.arrival_stop }}
+        <span class="delay-badge" data-delay-badge></span>
+      </div>
     </div>
   {% else %}
     <div class="step-body">
